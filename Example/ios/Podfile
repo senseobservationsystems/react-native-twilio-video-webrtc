@@ -3,8 +3,36 @@ source 'https://github.com/CocoaPods/Specs.git'
 
 platform :ios, '9.0'
 
+rn_path = '../node_modules/react-native'
+
 target 'Example' do
-  pod 'Yoga', path: '../node_modules/react-native/ReactCommon/yoga/Yoga.podspec'
-  pod 'React', path: '../node_modules/react-native'
+  pod 'yoga', path: "#{rn_path}/ReactCommon/yoga/yoga.podspec"
+  pod 'React', path: rn_path, subspecs: [
+    'Core',
+    'CxxBridge',
+    'DevSupport',
+    'RCTActionSheet',
+    'RCTAnimation',
+    'RCTGeolocation',
+    'RCTImage',
+    'RCTLinkingIOS',
+    'RCTNetwork',
+    'RCTSettings',
+    'RCTText',
+    'RCTVibration',
+    'RCTWebSocket',
+  ]
+  pod 'Folly', podspec: "#{rn_path}/third-party-podspecs/Folly.podspec"
   pod 'react-native-twilio-video-webrtc', path: '../../'
+  pod 'TwilioVideo', '~> 2.10.1'
+  
+  pod 'RNSound', :path => '../node_modules/react-native-sound'
+
+  post_install do |installer|
+    installer.pods_project.targets.each do |target|
+      if target.name == "React"
+        target.remove_from_project
+      end
+    end
+  end
 end

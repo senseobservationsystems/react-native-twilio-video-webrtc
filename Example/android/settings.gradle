@@ -1,3 +1,6 @@
 rootProject.name = 'Example'
-
+include ':react-native-sound'
+project(':react-native-sound').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sound/android')
+include ':react-native-twilio'
+project(':react-native-twilio').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-twilio-video-webrtc/android')
 include ':app'

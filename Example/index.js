@@ -16,6 +16,15 @@ import {
   TwilioVideo
 } from 'react-native-twilio-video-webrtc'
 
+const Sound = require('react-native-sound');
+
+const pitch1 = new Sound('emdr_06.mp3', Sound.MAIN_BUNDLE, (error) => {
+  if (error) console.log('Failed to load ringtone');
+
+  // Loop the ringtone indefinitely
+  pitch1.setNumberOfLoops(5);
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -32,14 +41,20 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 30,
     textAlign: 'center',
+    marginBottom: 50,
     paddingTop: 40
+  },
+  text: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 10
   },
   input: {
     height: 50,
     borderWidth: 1,
     marginRight: 70,
     marginLeft: 70,
-    marginTop: 50,
+    marginBottom: 50,
     textAlign: 'center',
     backgroundColor: 'white'
   },
@@ -52,7 +67,7 @@ const styles = StyleSheet.create({
     height: 250,
     position: "absolute",
     right: 10,
-    bottom: 10
+    bottom: 80
   },
   remoteGrid: {
     flex: 1,
@@ -77,8 +92,8 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   optionButton: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     marginLeft: 10,
     marginRight: 10,
     borderRadius: 100 / 2,
@@ -95,8 +110,8 @@ export default class Example extends Component {
     status: 'disconnected',
     participants: new Map(),
     videoTracks: new Map(),
-    roomName: '',
-    token: ''
+    roomName: 'video-calling-room',
+    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmLTE1NzQ4NDUwNjMiLCJpc3MiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmIiwic3ViIjoiQUM0MGMxZDI0YjdkMmJmM2U4YTcwZGZkZDE2NDcyZTU0OSIsImV4cCI6MTU3NDg0ODY2MywiZ3JhbnRzIjp7ImlkZW50aXR5IjoidGVzdC1pb3MtMSIsInZpZGVvIjp7InJvb20iOiJ2aWRlby1jYWxsaW5nLXJvb20ifX19.c-HvDaFM9FKrwZSKmgvAEK4YQPieu_FoFLC9b0vPhqM'
   }
 
   _onConnectButtonPress = () => {
@@ -115,6 +130,11 @@ export default class Example extends Component {
 
   _onFlipButtonPress = () => {
     this.refs.twilioVideo.flipCamera()
+  }
+
+  _onEnableCameraPress = () => {
+    this.refs.twilioVideo.setLocalVideoEnabled(!this.state.isVideoEnabled)
+      .then(isVideoEnabled => this.setState({isVideoEnabled}))
   }
 
   _onRoomDidConnect = () => {
@@ -153,6 +173,10 @@ export default class Example extends Component {
     this.setState({ videoTracks: new Map([ ...videoTracks ]) });
   }
 
+  _onPlayButtonPress = () => {
+    pitch1.play();
+  }
+
   render() {
     return (
       <View style={styles.container}>
@@ -162,12 +186,18 @@ export default class Example extends Component {
             <Text style={styles.welcome}>
               React Native Twilio Video
             </Text>
+            <Text style={styles.text}>
+              Room Name
+            </Text>
             <TextInput
               style={styles.input}
               autoCapitalize='none'
               value={this.state.roomName}
               onChangeText={(text) => this.setState({roomName: text})}>
             </TextInput>
+            <Text style={styles.text}>
+              Access Token
+            </Text>
             <TextInput
               style={styles.input}
               autoCapitalize='none'
@@ -201,8 +231,7 @@ export default class Example extends Component {
                 }
               </View>
             }
-            <View
-              style={styles.optionsContainer}>
+            <View style={styles.optionsContainer}>
               <TouchableOpacity
                 style={styles.optionButton}
                 onPress={this._onEndButtonPress}>
@@ -218,6 +247,16 @@ export default class Example extends Component {
                 onPress={this._onFlipButtonPress}>
                 <Text style={{fontSize: 12}}>Flip</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onEnableCameraPress}>
+                <Text style={{fontSize: 12}}>{ this.state.isVideoEnabled ? "Disable" : "Enable" }</Text>
+              </TouchableOpacity>
+              <Button
+                title="Play"
+                style={styles.button}
+                onPress={this._onPlayButtonPress}>
+              </Button>
               <TwilioVideoLocalView
                 enabled={true}
                 style={styles.localVideo}
