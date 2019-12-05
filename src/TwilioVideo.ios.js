@@ -73,6 +73,18 @@ export default class extends Component {
      */
     onParticipantRemovedAudioTrack: PropTypes.func,
     /**
+     * Called when a new data track has been added
+     *
+     * @param {{participant, track}}
+     */
+    onParticipantAddedDataTrack: PropTypes.func,
+    /**
+     * Called when a new data track has been removed
+     *
+     * @param {{participant, track}}
+     */
+    onParticipantRemovedDataTrack: PropTypes.func,
+    /**
      * Called when a video track has been enabled.
      *
      * @param {{participant, track}}
@@ -117,6 +129,11 @@ export default class extends Component {
      *
      */
     onStatsReceived: PropTypes.func,
+    /**
+     * Called when datatrack receive string message
+     *
+     */
+    onDataTrackReceiveString: PropTypes.func,
     ...View.propTypes
   }
 
@@ -128,6 +145,7 @@ export default class extends Component {
 
     this.setLocalVideoEnabled = this.setLocalVideoEnabled.bind(this)
     this.setLocalAudioEnabled = this.setLocalAudioEnabled.bind(this)
+    this.publishLocalDataTrack = this.publishLocalDataTrack.bind(this)
     this.flipCamera = this.flipCamera.bind(this)
     this.connect = this.connect.bind(this)
     this.disconnect = this.disconnect.bind(this)
@@ -138,12 +156,14 @@ export default class extends Component {
     this._registerEvents()
     this._startLocalVideo()
     this._startLocalAudio()
+    this._startLocalData()
   }
 
   componentWillUnmount () {
     this._unregisterEvents()
     this._stopLocalVideo()
     this._stopLocalAudio()
+    this._stopLocalData()
   }
 
   /**
@@ -166,6 +186,20 @@ export default class extends Component {
    */
   setLocalVideoEnabled (enabled) {
     return TWVideoModule.setLocalVideoEnabled(enabled)
+  }
+
+  /**
+   * Publish data track
+   */
+  publishLocalDataTrack () {
+    return TWVideoModule.publishLocalDataTrack()
+  }
+
+  /**
+   * Send string to data track
+   */
+  sendMessage (message) {
+    return TWVideoModule.sendMessage(message)
   }
 
   /**
@@ -229,6 +263,14 @@ export default class extends Component {
     TWVideoModule.stopLocalAudio()
   }
 
+  _startLocalData () {
+    TWVideoModule.startLocalData()
+  }
+
+  _stopLocalData () {
+    TWVideoModule.stopLocalData()
+  }
+
   _unregisterEvents () {
     TWVideoModule.changeListenerStatus(false)
     this._subscriptions.forEach(e => e.remove())
@@ -283,6 +325,16 @@ export default class extends Component {
           this.props.onParticipantRemovedAudioTrack(data)
         }
       }),
+      this._eventEmitter.addListener('participantAddedDataTrack', data => {
+        if (this.props.onParticipantAddedDataTrack) {
+          this.props.onParticipantAddedDataTrack(data)
+        }
+      }),
+      this._eventEmitter.addListener('participantRemovedDataTrack', data => {
+        if (this.props.onParticipantAddedDataTrack) {
+          this.props.onParticipantRemovedDataTrack(data)
+        }
+      }),
       this._eventEmitter.addListener('participantEnabledVideoTrack', data => {
         if (this.props.onParticipantEnabledVideoTrack) {
           this.props.onParticipantEnabledVideoTrack(data)
@@ -321,6 +373,11 @@ export default class extends Component {
       this._eventEmitter.addListener('statsReceived', data => {
         if (this.props.onStatsReceived) {
           this.props.onStatsReceived(data)
+        }
+      }),
+      this._eventEmitter.addListener('dataTrackReceiveString', data => {
+        if (this.props.onDataTrackReceiveString) {
+          this.props.onDataTrackReceiveString(data)
         }
       })
     ]
