@@ -23,8 +23,10 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_CAMERA_SWITCH
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_CONNECTED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_CONNECT_FAILURE;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DISCONNECTED;
+import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ADDED_DATA_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_CONNECTED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_DISCONNECTED;
+import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_REMOVED_DATA_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_VIDEO_CHANGED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ADDED_VIDEO_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_REMOVED_VIDEO_TRACK;
@@ -34,6 +36,7 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_E
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_DISABLED_VIDEO_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ENABLED_AUDIO_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_DISABLED_AUDIO_TRACK;
+import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DATA_TRACK_RECEIVE_STRING;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_STATS_RECEIVED;
 
 
@@ -51,6 +54,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int TOGGLE_REMOTE_SOUND = 9;
     private static final int RELEASE_RESOURCE = 10;
     private static final int TOGGLE_BLUETOOTH_HEADSET = 11;
+    private static final int SEND_MESSAGE = 12;
 
     @Override
     public String getName() {
@@ -71,7 +75,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 boolean enableAudio = args.getBoolean(2);
                 boolean enableVideo = args.getBoolean(3);
                 boolean enableRemoteAudio = args.getBoolean(4);
-                view.connectToRoomWrapper(roomName, accessToken, enableAudio, enableVideo, enableRemoteAudio);
+                boolean enableData = args.getBoolean(5);
+                view.connectToRoomWrapper(roomName, accessToken, enableAudio, enableVideo, enableRemoteAudio, enableData);
                 break;
             case DISCONNECT:
                 view.disconnect();
@@ -108,6 +113,9 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 Boolean headsetEnabled = args.getBoolean(0);
                 view.toggleBluetoothHeadset(headsetEnabled);
                 break;
+            case SEND_MESSAGE:
+                String message = args.getString(0);
+                view.sendMessage(message);
         }
     }
 
@@ -138,6 +146,11 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 ON_PARTICIPANT_DISABLED_AUDIO_TRACK, MapBuilder.of("registrationName", ON_PARTICIPANT_DISABLED_AUDIO_TRACK),
                 ON_STATS_RECEIVED, MapBuilder.of("registrationName", ON_STATS_RECEIVED)
         ));
+        map.putAll(MapBuilder.of(
+                ON_PARTICIPANT_ADDED_DATA_TRACK, MapBuilder.of("registrationName", ON_PARTICIPANT_ADDED_DATA_TRACK),
+                ON_PARTICIPANT_REMOVED_DATA_TRACK, MapBuilder.of("registrationName", ON_PARTICIPANT_REMOVED_DATA_TRACK),
+                ON_DATA_TRACK_RECEIVE_STRING, MapBuilder.of("registrationName", ON_DATA_TRACK_RECEIVE_STRING)
+        ));
 
         return map;
     }
@@ -155,6 +168,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("disableOpenSLES", DISABLE_OPENSL_ES)
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
+                .put("sendMessage", SEND_MESSAGE)
                 .build();
     }
 }

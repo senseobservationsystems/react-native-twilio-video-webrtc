@@ -78,6 +78,20 @@ const propTypes = {
   onParticipantRemovedAudioTrack: PropTypes.func,
 
   /**
+   * Called when a new data track has been added
+   *
+   * @param {{participant, track}}
+   */
+  onParticipantAddedDataTrack: PropTypes.func,
+
+  /**
+   * Called when a new data track has been removed
+   *
+   * @param {{participant, track}}
+   */
+  onParticipantRemovedDataTrack: PropTypes.func,
+
+  /**
    * Callback called a participant enters a room.
    */
   onRoomParticipantDidConnect: PropTypes.func,
@@ -111,6 +125,11 @@ const propTypes = {
    */
   onParticipantDisabledAudioTrack: PropTypes.func,
   /**
+   * Called when datatrack receive string message
+   *
+   */
+  onDataTrackReceiveString: PropTypes.func,
+  /**
    * Callback that is called when stats are received (after calling getStats)
    */
   onStatsReceived: PropTypes.func
@@ -127,7 +146,8 @@ const nativeEvents = {
   toggleSoundSetup: 8,
   toggleRemoteSound: 9,
   releaseResource: 10,
-  toggleBluetoothHeadset: 11
+  toggleBluetoothHeadset: 11,
+  sendMessage: 12
 }
 
 class CustomTwilioVideoView extends Component {
@@ -136,14 +156,16 @@ class CustomTwilioVideoView extends Component {
     accessToken,
     enableAudio = true,
     enableVideo = true,
-    enableRemoteAudio = true
+    enableRemoteAudio = true,
+    enableData = false,
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
       accessToken,
       enableAudio,
       enableVideo,
-      enableRemoteAudio
+      enableRemoteAudio,
+      enableData
     ])
   }
 
@@ -191,6 +213,10 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.toggleSoundSetup, [speaker])
   }
 
+  sendMessage (message) {
+    this.runCommand(nativeEvents.sendMessage, [message])
+  }
+
   runCommand (event, args) {
     switch (Platform.OS) {
       case 'android':
@@ -223,6 +249,7 @@ class CustomTwilioVideoView extends Component {
       'onParticipantDisabledVideoTrack',
       'onParticipantEnabledAudioTrack',
       'onParticipantDisabledAudioTrack',
+      'onDataTrackReceiveString',
       'onStatsReceived'
     ].reduce((wrappedEvents, eventName) => {
       if (this.props[eventName]) {
