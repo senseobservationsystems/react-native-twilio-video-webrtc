@@ -152,11 +152,7 @@ RCT_EXPORT_METHOD(stopLocalAudio) {
 }
 
 RCT_EXPORT_METHOD(startLocalData) {
-    TVIDataTrackOptions* dataTrackOptions = [TVIDataTrackOptions optionsWithBlock:^(TVIDataTrackOptionsBuilder * _Nonnull builder) {
-        builder.ordered = YES;
-        builder.name = @"emdr-track";
-    }];
-    self.localDataTrack = [TVILocalDataTrack trackWithOptions:dataTrackOptions];
+    self.localDataTrack = [TVILocalDataTrack track];
 }
 
 RCT_EXPORT_METHOD(stopLocalData) {
@@ -321,7 +317,7 @@ RCT_EXPORT_METHOD(getStats) {
   }
 }
 
-RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName) {
+RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName dataEnabled:(BOOL)dataEnabled) {
   TVIConnectOptions *connectOptions = [TVIConnectOptions optionsWithToken:accessToken block:^(TVIConnectOptionsBuilder * _Nonnull builder) {
     if (self.localVideoTrack) {
       builder.videoTracks = @[self.localVideoTrack];
@@ -329,6 +325,10 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName)
 
     if (self.localAudioTrack) {
       builder.audioTracks = @[self.localAudioTrack];
+    }
+
+    if (self.localDataTrack && dataEnabled) {
+      builder.dataTracks = @[self.localDataTrack];
     }
 
     builder.roomName = roomName;
@@ -339,27 +339,6 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName)
 
 RCT_EXPORT_METHOD(disconnect) {
   [self.room disconnect];
-}
-
-RCT_REMAP_METHOD(publishLocalDataTrack, publishLocalDataTrackWithResolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-    if (!self.room) {
-        reject(@"no_room", @"There were no room created yet", nil);
-        return;
-    }
-
-    if (self.localDataTrack) {
-        if (self.room.localParticipant) {
-            [self.room.localParticipant publishDataTrack:self.localDataTrack];
-            resolve(@(YES));
-            return;
-        }
-
-        reject(@"no_participant", @"There were no local participant", nil);
-        return;
-    }
-
-    reject(@"no_local_data_track", @"There were no local data track", nil);
-    return;
 }
 
 RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
@@ -497,7 +476,7 @@ RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
 }
 
 - (void)remoteDataTrack:(TVIRemoteDataTrack *)remoteDataTrack didReceiveString:(NSString *)message {
-    [self sendEventCheckingListenerWithName:dataTrackReceiveString body:@{ @"participant": remoteDataTrack.sid, @"message": message}];
+    [self sendEventCheckingListenerWithName:dataTrackReceiveString body:@{ @"trackSid": remoteDataTrack.sid, @"message": message}];
 }
 
 // TODO: Local participant delegates

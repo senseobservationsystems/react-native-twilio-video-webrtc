@@ -145,7 +145,6 @@ export default class extends Component {
 
     this.setLocalVideoEnabled = this.setLocalVideoEnabled.bind(this)
     this.setLocalAudioEnabled = this.setLocalAudioEnabled.bind(this)
-    this.publishLocalDataTrack = this.publishLocalDataTrack.bind(this)
     this.flipCamera = this.flipCamera.bind(this)
     this.connect = this.connect.bind(this)
     this.disconnect = this.disconnect.bind(this)
@@ -189,13 +188,6 @@ export default class extends Component {
   }
 
   /**
-   * Publish data track
-   */
-  publishLocalDataTrack () {
-    return TWVideoModule.publishLocalDataTrack()
-  }
-
-  /**
    * Send string to data track
    */
   sendMessage (message) {
@@ -235,8 +227,8 @@ export default class extends Component {
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
    */
-  connect ({ roomName, accessToken }) {
-    TWVideoModule.connect(accessToken, roomName)
+  connect ({ roomName, accessToken, enableData=false }) {
+    TWVideoModule.connect(accessToken, roomName, enableData)
   }
 
   /**
