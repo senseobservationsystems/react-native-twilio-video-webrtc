@@ -41,6 +41,7 @@ static NSString* statsReceived                = @"statsReceived";
 @property (strong, nonatomic) TVILocalVideoTrack* localVideoTrack;
 @property (strong, nonatomic) TVILocalAudioTrack* localAudioTrack;
 @property (strong, nonatomic) TVILocalDataTrack* localDataTrack;
+@property (strong, nonatomic) NSMutableDictionary<NSString*, TVIRemoteParticipant*> *dataTrackRemoteParticipantMap;
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
 
@@ -153,6 +154,7 @@ RCT_EXPORT_METHOD(stopLocalAudio) {
 
 RCT_EXPORT_METHOD(startLocalData) {
     self.localDataTrack = [TVILocalDataTrack track];
+    self.dataTrackRemoteParticipantMap = [[NSMutableDictionary alloc] init];
 }
 
 RCT_EXPORT_METHOD(stopLocalData) {
@@ -284,6 +286,19 @@ RCT_EXPORT_METHOD(toggleSoundSetup:(BOOL)speaker) {
   return result;
 }
 
+-(void)addRemoteParticipant:(TVIRemoteParticipant *)participant {
+    for (TVIRemoteDataTrackPublication *dataTrackPublication in participant.remoteDataTracks) {
+        if (dataTrackPublication.isTrackSubscribed) {
+            [self addRemoteDataTrack:dataTrackPublication.remoteTrack participant:participant];
+        }
+    }
+}
+
+-(void)addRemoteDataTrack:(TVIRemoteDataTrack *)dataTrack participant:(TVIRemoteParticipant *)participant {
+    dataTrack.delegate = self;
+    [self.dataTrackRemoteParticipantMap setValue:participant forKey:dataTrack.sid];
+}
+
 RCT_EXPORT_METHOD(getStats) {
   if (self.room) {
     [self.room getStatsWithBlock:^(NSArray<TVIStatsReport *> * _Nonnull statsReports) {
@@ -385,11 +400,11 @@ RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
   for (TVIRemoteParticipant *p in room.remoteParticipants) {
     p.delegate = self;
     [participants addObject:[p toJSON]];
+    [self addRemoteParticipant:p];
   }
   TVILocalParticipant *localParticipant = room.localParticipant;
   [participants addObject:[localParticipant toJSON]];
-    [self sendEventCheckingListenerWithName:roomDidConnect body:@{ @"roomName" : room.name , @"roomSid": room.sid, @"participants" : participants }];
-   
+  [self sendEventCheckingListenerWithName:roomDidConnect body:@{ @"roomName" : room.name , @"roomSid": room.sid, @"participants" : participants }];
 }
 
 - (void)room:(TVIRoom *)room didDisconnectWithError:(nullable NSError *)error {
@@ -417,9 +432,10 @@ RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
 
 
 - (void)room:(TVIRoom *)room participantDidConnect:(TVIRemoteParticipant *)participant {
-  participant.delegate = self;
+    participant.delegate = self;
 
-  [self sendEventCheckingListenerWithName:roomParticipantDidConnect body:@{ @"roomName": room.name, @"roomSid": room.sid, @"participant": [participant toJSON] }];
+    [self addRemoteParticipant:participant];
+    [self sendEventCheckingListenerWithName:roomParticipantDidConnect body:@{ @"roomName": room.name, @"roomSid": room.sid, @"participant": [participant toJSON] }];
 }
 
 - (void)room:(TVIRoom *)room participantDidDisconnect:(TVIRemoteParticipant *)participant {
@@ -461,7 +477,7 @@ RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
 }
 
 - (void)subscribedToDataTrack:(TVIRemoteDataTrack *)dataTrack publication:(TVIRemoteDataTrackPublication *)publication forParticipant:(TVIRemoteParticipant *)participant {
-    dataTrack.delegate = self;
+    [self addRemoteDataTrack:dataTrack participant:participant];
     [self sendEventCheckingListenerWithName:participantAddedDataTrack body:@{ @"participant": [participant toJSON], @"track": [publication toJSON]}];
 }
 
@@ -476,7 +492,8 @@ RCT_EXPORT_METHOD(sendMessage:(NSString *)message) {
 }
 
 - (void)remoteDataTrack:(TVIRemoteDataTrack *)remoteDataTrack didReceiveString:(NSString *)message {
-    [self sendEventCheckingListenerWithName:dataTrackReceiveString body:@{ @"trackSid": remoteDataTrack.sid, @"message": message}];
+    TVIRemoteParticipant *participant = [self.dataTrackRemoteParticipantMap objectForKey:remoteDataTrack.sid];
+    [self sendEventCheckingListenerWithName:dataTrackReceiveString body:@{ @"participant":[participant toJSON], @"trackSid": remoteDataTrack.sid, @"message": message}];
 }
 
 // TODO: Local participant delegates
