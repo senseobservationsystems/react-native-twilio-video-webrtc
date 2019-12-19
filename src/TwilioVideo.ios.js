@@ -323,7 +323,7 @@ export default class extends Component {
         }
       }),
       this._eventEmitter.addListener('participantRemovedDataTrack', data => {
-        if (this.props.onParticipantAddedDataTrack) {
+        if (this.props.onParticipantRemovedDataTrack) {
           this.props.onParticipantRemovedDataTrack(data)
         }
       }),
