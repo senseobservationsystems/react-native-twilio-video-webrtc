@@ -37,6 +37,7 @@ static NSString* statsReceived                = @"statsReceived";
 @property (strong, nonatomic) TVILocalVideoTrack* localVideoTrack;
 @property (strong, nonatomic) TVILocalAudioTrack* localAudioTrack;
 @property (strong, nonatomic) TVIRoom *room;
+@property (strong, nonatomic) TVIDefaultAudioDevice *audioDevice;
 @property (nonatomic) BOOL listening;
 
 @end
@@ -100,6 +101,40 @@ RCT_EXPORT_MODULE();
        }
      }
   }
+}
+
+- (void)initializeAudioDevice {
+    kDefaultAVAudioSessionConfigurationBlock();
+
+    // Overwrite the audio route
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    
+    NSError *error = nil;
+    
+    if (![session overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:&error]) {
+        NSLog(@"AVAudiosession overrideOutputAudioPort %@",error);
+    }
+    
+    if (![session setMode:AVAudioSessionModeDefault error:&error]) {
+        NSLog(@"AVAudiosession setMode %@",error);
+    }
+    
+    if (![session setActive:true error:&error]){
+        NSLog(@"AVAudiosession Activating Session %@",error);
+    }
+}
+
+RCT_EXPORT_METHOD(initialize) {
+    self.audioDevice = [TVIDefaultAudioDevice audioDevice];
+    TwilioVideo.audioDevice = self.audioDevice;
+    
+    // Create a weak pointer to self so that we don't hold on to memory after setBlock is finished
+    __weak typeof(self) weakSelf = self;
+    [self.audioDevice setBlock:^{
+        [weakSelf initializeAudioDevice];
+    }];
+    
+    [self.audioDevice block];
 }
 
 RCT_EXPORT_METHOD(changeListenerStatus:(BOOL)value) {
@@ -205,6 +240,67 @@ RCT_EXPORT_METHOD(toggleSoundSetup:(BOOL)speaker) {
       }
     }
   }
+
+
+RCT_EXPORT_METHOD(setAudioDeviceCategoryAndMode:(NSString *)categoryName mode:(NSString *)modeName) {
+    kDefaultAVAudioSessionConfigurationBlock();
+
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    
+    NSString *mode = nil;
+    NSString *category = nil;
+    NSError *error = nil;
+    
+    if ([modeName isEqual: @"Default"]) {
+      mode = AVAudioSessionModeDefault;
+    } else if ([modeName isEqual: @"VoiceChat"]) {
+      mode = AVAudioSessionModeVoiceChat;
+    } else if ([modeName isEqual: @"VideoChat"]) {
+      mode = AVAudioSessionModeVideoChat;
+    } else if ([modeName isEqual: @"GameChat"]) {
+      mode = AVAudioSessionModeGameChat;
+    } else if ([modeName isEqual: @"VideoRecording"]) {
+      mode = AVAudioSessionModeVideoRecording;
+    } else if ([modeName isEqual: @"Measurement"]) {
+      mode = AVAudioSessionModeMeasurement;
+    } else if ([modeName isEqual: @"MoviePlayback"]) {
+      mode = AVAudioSessionModeMoviePlayback;
+    } else if ([modeName isEqual: @"SpokenAudio"]) {
+      mode = AVAudioSessionModeSpokenAudio;
+    }
+
+    if (mode) {
+      if ([session setMode: mode error:&error]) {
+         NSLog(@"AVAudiosession setMode %@",error);
+     }
+    }
+    
+    if ([categoryName isEqual: @"Ambient"]) {
+       category = AVAudioSessionCategoryAmbient;
+     } else if ([categoryName isEqual: @"SoloAmbient"]) {
+       category = AVAudioSessionCategorySoloAmbient;
+     } else if ([categoryName isEqual: @"Playback"]) {
+       category = AVAudioSessionCategoryPlayback;
+     } else if ([categoryName isEqual: @"Record"]) {
+       category = AVAudioSessionCategoryRecord;
+     } else if ([categoryName isEqual: @"PlayAndRecord"]) {
+       category = AVAudioSessionCategoryPlayAndRecord;
+     }
+     #if TARGET_OS_IOS
+     else if ([categoryName isEqual: @"AudioProcessing"]) {
+         category = AVAudioSessionCategoryAudioProcessing;
+     }
+     #endif
+       else if ([categoryName isEqual: @"MultiRoute"]) {
+       category = AVAudioSessionCategoryMultiRoute;
+     }
+
+     if (category) {
+         if ([session setCategory: category withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker|AVAudioSessionCategoryOptionAllowBluetooth|AVAudioSessionCategoryOptionAllowBluetoothA2DP error:&error]) {
+             NSLog(@"AVAudiosession setMode %@",error);
+         }
+     }
+}
 
 -(void)convertBaseTrackStats:(TVIBaseTrackStats *)stats result:(NSMutableDictionary *)result {
   result[@"trackSid"] = stats.trackSid;
