@@ -135,6 +135,7 @@ export default class extends Component {
   }
 
   componentWillMount () {
+    this._init()
     this._registerEvents()
     this._startLocalAudio()
   }
@@ -190,6 +191,13 @@ export default class extends Component {
   }
 
   /**
+   * Set category and mode for the Audio Device
+   */
+  setCategoryAndMode (categoryName, modeName) {
+    TWVideoModule.setAudioDeviceCategoryAndMode(categoryName, modeName)
+  }
+
+  /**
    * Get connection stats
    */
   getStats () {
@@ -228,6 +236,10 @@ export default class extends Component {
 
   _stopLocalAudio () {
     TWVideoModule.stopLocalAudio()
+  }
+
+  _init() {
+    TWVideoModule.initialize()
   }
 
   _unregisterEvents () {
