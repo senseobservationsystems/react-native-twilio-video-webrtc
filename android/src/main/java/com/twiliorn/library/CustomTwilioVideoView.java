@@ -17,8 +17,8 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringDef;
 import android.util.Log;
 import android.view.View;
 
@@ -219,29 +219,30 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         }
     }
 
-    private void createLocalMedia(boolean enableAudio, boolean enableVideo) {
-        // Share your microphone
-        localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
-
+    private void createLocalVideo() {
         // Share your camera
         cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.FRONT_CAMERA);
         if (cameraCapturer == null){
             cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.BACK_CAMERA);
         }
-        if (cameraCapturer == null){
-            WritableMap event = new WritableNativeMap();
-            event.putString("reason", "No camera is supported on this device");
-            pushEvent(CustomTwilioVideoView.this, ON_CONNECT_FAILURE, event);
-            return;
-        }
 
-        if (cameraCapturer.getSupportedFormats().size() > 0) {
-            localVideoTrack = LocalVideoTrack.create(getContext(), enableVideo, cameraCapturer, buildVideoConstraints());
+        if (cameraCapturer != null && cameraCapturer.getSupportedFormats().size() > 0) {
+            localVideoTrack = LocalVideoTrack.create(getContext(), true, cameraCapturer, buildVideoConstraints());
             if (thumbnailVideoView != null && localVideoTrack != null) {
                 localVideoTrack.addRenderer(thumbnailVideoView);
             }
             setThumbnailMirror();
         }
+    }
+
+    private void createLocalMedia(boolean enableAudio, boolean enableVideo) {
+        // Share your microphone
+        localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
+
+        if (enableVideo) {
+            createLocalVideo();
+        }
+
         connectToRoom(enableAudio);
     }
 
@@ -479,6 +480,13 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     public void toggleVideo(boolean enabled) {
+        if (enabled && localVideoTrack == null) {
+            createLocalVideo();
+            if (localParticipant != null) {
+                localParticipant.publishTrack(localVideoTrack);
+            }
+        }
+
         if (localVideoTrack != null) {
             localVideoTrack.enable(enabled);
 

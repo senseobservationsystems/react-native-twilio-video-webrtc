@@ -136,7 +136,6 @@ export default class extends Component {
 
   componentWillMount () {
     this._registerEvents()
-    this._startLocalVideo()
     this._startLocalAudio()
   }
 
@@ -165,6 +164,7 @@ export default class extends Component {
    * Enable or disable local video
    */
   setLocalVideoEnabled (enabled) {
+    this._startLocalVideo(enabled)
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -201,7 +201,8 @@ export default class extends Component {
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
    */
-  connect ({ roomName, accessToken }) {
+  connect ({ roomName, accessToken, enableVideo }) {
+    this._startLocalVideo(enableVideo)
     TWVideoModule.connect(accessToken, roomName)
   }
 
@@ -212,9 +213,9 @@ export default class extends Component {
     TWVideoModule.disconnect()
   }
 
-  _startLocalVideo () {
+  _startLocalVideo (enabled) {
     const screenShare = this.props.screenShare || false
-    TWVideoModule.startLocalVideo(screenShare)
+    TWVideoModule.startLocalVideo(screenShare, enabled)
   }
 
   _stopLocalVideo () {
