@@ -116,7 +116,11 @@ RCT_EXPORT_METHOD(setRemoteAudioPlayback:(NSString *)participantSid enabled:(BOO
     }
 }
 
-RCT_EXPORT_METHOD(startLocalVideo:(BOOL)screenShare) {
+RCT_EXPORT_METHOD(startLocalVideo:(BOOL)screenShare enabled:(BOOL) enabled) {
+    if (!enabled || self.localVideoTrack != nil) {
+        return;
+    }
+
   if (screenShare) {
     UIViewController *rootViewController = [UIApplication sharedApplication].delegate.window.rootViewController;
     self.screen = [[TVIScreenCapturer alloc] initWithView:rootViewController.view];
@@ -127,6 +131,11 @@ RCT_EXPORT_METHOD(startLocalVideo:(BOOL)screenShare) {
     self.camera.delegate = self;
 
     self.localVideoTrack = [TVILocalVideoTrack trackWithCapturer:self.camera enabled:YES constraints:[self videoConstraints] name:@"camera"];
+  }
+
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  if (localParticipant != nil && self.localVideoTrack != nil) {
+      [localParticipant publishVideoTrack:self.localVideoTrack];
   }
 }
 
