@@ -59,6 +59,7 @@ import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
 import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
+import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoView;
 
 import org.webrtc.voiceengine.WebRtcAudioManager;
@@ -231,7 +232,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             if (thumbnailVideoView != null && localVideoTrack != null) {
                 localVideoTrack.addRenderer(thumbnailVideoView);
             }
-            setThumbnailMirror();
+            setThumbnailMirrorOnStart(thumbnailVideoView);
         }
     }
 
@@ -461,8 +462,29 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         if (cameraCapturer != null) {
             CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
             final boolean isBackCamera = (cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
-            if (thumbnailVideoView != null && thumbnailVideoView.getVisibility() == View.VISIBLE) {
-                thumbnailVideoView.setMirror(isBackCamera);
+
+            // Previously, only thumbnailView has its mirroring set.
+            // This will make sure, that all Local Video have its mirroring set.
+            List<VideoRenderer> renderers = localVideoTrack.getRenderers();
+            for(VideoRenderer renderer:  renderers) {
+                if (renderer != null && renderer instanceof VideoView) {
+                    VideoView tempView = (VideoView) renderer;
+                    if (tempView.getVisibility() == View.VISIBLE) {
+                        tempView.setMirror(isBackCamera);
+                    }
+                }
+            };
+        }
+    }
+
+    // This is to make sure that whenever Local Video is created, it has the correct mirroring
+    private static void setThumbnailMirrorOnStart(VideoView v) {
+        if (cameraCapturer != null) {
+            CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
+            final boolean isBackCamera = (cameraSource != CameraCapturer.CameraSource.BACK_CAMERA);
+
+            if (v != null && v.getVisibility() == View.VISIBLE) {
+                v.setMirror(isBackCamera);
             }
         }
     }
@@ -489,7 +511,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
         if (localVideoTrack != null) {
             localVideoTrack.enable(enabled);
-
             WritableMap event = new WritableNativeMap();
             event.putBoolean("videoEnabled", enabled);
             pushEvent(CustomTwilioVideoView.this, ON_VIDEO_CHANGED, event);
@@ -930,6 +951,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         if (localVideoTrack != null) {
             localVideoTrack.addRenderer(v);
         }
-        setThumbnailMirror();
+        setThumbnailMirrorOnStart(v);
     }
 }

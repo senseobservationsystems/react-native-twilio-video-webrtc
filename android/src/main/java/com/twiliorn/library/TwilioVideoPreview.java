@@ -17,7 +17,12 @@ public class TwilioVideoPreview extends RNVideoViewGroup {
     public TwilioVideoPreview(Context context) {
         super(context);
         CustomTwilioVideoView.registerThumbnailVideoView(this.getSurfaceViewRenderer());
-        this.getSurfaceViewRenderer().setMirror(true);
+    }
+
+    // Previously, we always call this function for all Local Video.
+    // But, this results in a problem where camera view can be rendered below
+    // Local Video on the middle of Call Screen.
+    public void applyZOrder() {
         this.getSurfaceViewRenderer().applyZOrder(true);
     }
 }
