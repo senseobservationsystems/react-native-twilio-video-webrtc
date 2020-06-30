@@ -352,7 +352,7 @@ RCT_EXPORT_METHOD(getStats) {
 RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName encodingParameters:(NSDictionary *)encodingParameters) {
   if (self.localVideoTrack == nil) {
     // We disabled video in a previous call, attempt to re-enable
-    [self startLocalVideo];
+    [self startLocalVideo:false];
   }
 
   TVIConnectOptions *connectOptions = [TVIConnectOptions optionsWithToken:accessToken block:^(TVIConnectOptionsBuilder * _Nonnull builder) {
