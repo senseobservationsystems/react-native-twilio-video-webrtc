@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import {
+  TwilioStereoTonePlayer,
   TwilioVideoLocalView,
   TwilioVideoParticipantView,
   TwilioVideo
@@ -98,6 +99,21 @@ export default class Example extends Component {
     participants: new Map(),
     videoTracks: new Map(),
     token: ''
+  }
+
+  componentWillMount () { 
+    this.audioPlayer = new TwilioStereoTonePlayer();
+    this.audioPlayer.preload("stereo_tone.wav")
+      .then( () => {
+        this.audioPlayer.play("stereo_tone.wav", true, 1.0, 1.0);
+      })
+      .catch( (e) => {
+        console.error("Failed to preload with error", e);
+      });
+  }
+
+  componentWillUnmount () {
+    this.audioPlayer.terminate();
   }
 
   _onConnectButtonPress = async () => {
