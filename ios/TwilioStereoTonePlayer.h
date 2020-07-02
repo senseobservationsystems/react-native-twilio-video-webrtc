@@ -9,10 +9,15 @@
 #import <AudioToolbox/AudioToolbox.h>
 #import <AVFoundation/AVFoundation.h>
 
+#import "RCTTWCustomAudioDevice.h"
+
 // A class to play stereo tones during a Twilio Call
 @interface TwilioStereoTonePlayer : NSObject <RCTBridgeModule>
 
 // Class properties
+
+// A static instance to the Twilio Custom Audio device on which all music playback would be scheduled
+@property (class) RCTTWCustomAudioDevice *audioDevice;
 
 // Maximum number of audio files that can be loaded by this class
 @property (nonatomic) int maxLoadableFiles;
@@ -23,7 +28,6 @@
 @property (nonatomic, strong) NSString *currentPlayingFile;
 @property (nonatomic) float volume;
 @property (nonatomic) float playbackSpeed;
-
 
 @property (nonatomic, strong) NSMutableDictionary *loadedFiles;
 

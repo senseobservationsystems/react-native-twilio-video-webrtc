@@ -15,6 +15,20 @@
     return self;
 }
 
+static RCTTWCustomAudioDevice *_audioDevice;
+
++ ( RCTTWCustomAudioDevice *)audioDevice {
+   if (_audioDevice==nil) {
+      [TwilioStereoTonePlayer setAudioDevice:_audioDevice];
+   }
+   return _audioDevice;
+}
+
++ (void)setAudioDevice:(RCTTWCustomAudioDevice *)audioDevice {
+    _audioDevice = audioDevice;
+}
+
+
 RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(initialize:(int)maxLoadableFiles) {
@@ -45,37 +59,34 @@ RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)r
     }
 
     // Create a file path based on the local bundle as we only expect to play files that are locally on disk
-    NSString *filepath = [NSString stringWithFormat:@"file://%@/%@", [[NSBundle mainBundle] bundlePath], filename];
+    NSString *filepath = [NSString stringWithFormat:@"%@/%@", [[NSBundle mainBundle] bundlePath], filename];
     
     // Make sure the path is escaped correctly and only has strings that are supported in a file path
     NSCharacterSet *set = [NSCharacterSet URLFragmentAllowedCharacterSet];
     NSString * filepathEscaped = [filepath stringByAddingPercentEncodingWithAllowedCharacters:set];
 
-    // Create an AVAsset file from the escaped path
-    AVAsset *asset = [AVAsset assetWithURL:[NSURL URLWithString:filepathEscaped]];
+    // Create a local file URL
+    NSURL *url = [NSURL fileURLWithPath:filepath];
     
-    // Check if we can read the path provided to AVAsset above
-    if (asset.isReadable == FALSE) {
-        reject(@"error", [NSString stringWithFormat:@"ERROR: The specified file cannot be read. %@", filepathEscaped], err);
+    // Try to load the AVAudio File
+    AVAudioFile *file = [[AVAudioFile alloc] initForReading:url error:&err];
+    if (err != NULL) {
+        reject(@"Error", [NSString stringWithFormat:@"Failed to load file at path: %@", filepathEscaped], err);
         return;
     }
     
-    // Check if we can actually play the media file provided in the path above
-    if (asset.playable == FALSE) {
-        reject(@"error", [NSString stringWithFormat:@"ERROR: The specified file at path is unplayable. %@", filepathEscaped], err);
+    // Create an audio buffer to read the file into
+    AVAudioPCMBuffer *musicBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat
+                                                 frameCapacity:(AVAudioFrameCount)file.length];
+
+    // Lets try to load the file into an audio buffer
+    BOOL success = [file readIntoBuffer:musicBuffer error:&err];
+    if (!success) {
+        reject(@"Error", [NSString stringWithFormat:@"Failed to read file into audio buffer at path: %@", filepathEscaped], err);
         return;
     }
     
-    // We need to make an AVPlayerItem and pass it to an AVQueuePlayer to actually play
-    AVPlayerItem *playerItem = [AVPlayerItem playerItemWithAsset:asset];
-//    AVQueuePlayer* queuePlayer = [AVQueuePlayer queuePlayerWithItems:@[playerItem]];
-    
-    if (_currentPlayer == NULL) {
-        _currentPlayer = [AVQueuePlayer queuePlayerWithItems:@[playerItem]];
-    }
-    
-    // Set the current file in the loadedFiles array
-    [_loadedFiles setObject:playerItem forKey:filename];
+    [_loadedFiles setObject:musicBuffer forKey:filename];
 
     resolve(@(true));
 }
@@ -83,14 +94,21 @@ RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)r
 RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
     NSLog(@"play %@ - volume %f - isLooping %s", filename, volume, isLooping ? "Yes" : "No");
     
+    NSError *err;
+    
     // Sanity Check
     if (_loadedFiles == NULL) {
-        reject(@"Error", [NSString stringWithFormat:@"Please call initialize first"], NULL);
+        reject(@"Error", [NSString stringWithFormat:@"Please call initialize first"], err);
+        return;
+    }
+    
+    if (TwilioStereoTonePlayer.audioDevice == nil) {
+        reject(@"Error", [NSString stringWithFormat:@"No Custom Audio device found! Are you trying to call play before the Twilio Local Audio Track is created or running in no custom device mode?"], err);
         return;
     }
     
     // Try to load the preloaded player from the loaded players list
-    AVPlayerItem* fileToPlay = [_loadedFiles objectForKey:filename];
+    AVAudioPCMBuffer* fileToPlay = [_loadedFiles objectForKey:filename];
     
     // If the current file is not already loaded
     if (fileToPlay == nil) {
@@ -107,38 +125,12 @@ RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(flo
         }
     }
     
-    if (_currentPlayer == NULL) {
-        reject(@"Error", [NSString stringWithFormat:@"The player is still unitialized! This should be impossible"], NULL);
-        return;
-    }
+    // Try to schedule playback on the Twilio Custom Audio Device
+    [[TwilioStereoTonePlayer audioDevice] playBuffer:fileToPlay isLooping:isLooping volume:volume playbackSpeed:playbackSpeed];
     
-    // This is an extra safety layer to avoid potential crashes happening from _currentPlayer being NULL
-    if (fileToPlay) {
-        
-        // Recreate the current player with the new item to play
-        [_currentPlayer removeAllItems];
-        [_currentPlayer insertItem:fileToPlay afterItem:NULL];
-        
-        // We generate a looper class to tell AVQueuePlayer to loop this file, this ensures better quality looping
-        if (isLooping) {
-            // TODO: I still don't like this object instantiation in the play method, but I don't see a clean memory efficient way to avoid it for now
-            _playerLooper = [AVPlayerLooper playerLooperWithPlayer:_currentPlayer templateItem:fileToPlay];
-        }
-        
-        _volume = volume;
-        _playbackSpeed = playbackSpeed;
-        
-        _currentPlayingFile = filename;
-        [_currentPlayer setVolume:_volume];
-        [_currentPlayer play];
-        
-        // NOTE: Always call this AFTER play. Play resets the plaback speed to 1.0
-        [_currentPlayer setRate:_playbackSpeed];
-        
-        NSLog(@"Playing File");
-    } else {
-        reject(@"error", [NSString stringWithFormat:@"Unable to load file %@", filename], NULL);
-    }
+    _volume = volume;
+    _playbackSpeed = playbackSpeed;
+    _currentPlayingFile = filename;
     
     resolve(@(true));
 }
@@ -146,18 +138,38 @@ RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(flo
 RCT_EXPORT_METHOD(pause) {
     NSLog(@"pause");
     
-    if (_currentPlayer) {
-        [_currentPlayer pause];
+    if (TwilioStereoTonePlayer.audioDevice == nil) {
+        NSLog(@"Error: No Custom Audio device found! Are you trying to call pause before the Twilio Local Audio Track is created or running in no custom device mode?");
+        return;
     }
+    
+    [[TwilioStereoTonePlayer audioDevice] pausePlayback];
 }
 
 RCT_EXPORT_METHOD(setVolume:(float)volume) {
     NSLog(@"setVolume %f", volume);
     
     _volume = volume;
-    if (_currentPlayer) {
-        [_currentPlayer setVolume:volume];
+    
+    if (TwilioStereoTonePlayer.audioDevice == nil) {
+        NSLog(@"Error: No Custom Audio device found! Are you trying to call setVolume before the Twilio Local Audio Track is created or running in no custom device mode?");
+        return;
     }
+    
+    [[TwilioStereoTonePlayer audioDevice] setPlaybackVolume:volume];
+}
+
+RCT_EXPORT_METHOD(setPlaybackSpeed:(float)playbackSpeed) {
+    NSLog(@"setPlaybackSpeed %f", playbackSpeed);
+    
+    _playbackSpeed = playbackSpeed;
+    
+    if (TwilioStereoTonePlayer.audioDevice == nil) {
+        NSLog(@"Error: No Custom Audio device found! Are you trying to call setPlaybackSpeed before the Twilio Local Audio Track is created or running in no custom device mode?");
+        return;
+    }
+    
+    [[TwilioStereoTonePlayer audioDevice] setPlaybackSpeed:playbackSpeed];
 }
 
 RCT_EXPORT_METHOD(release:(NSString*)filename) {

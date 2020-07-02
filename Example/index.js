@@ -88,6 +88,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'grey',
     justifyContent: 'center',
     alignItems: "center"
+  },
+  playbackContainer: {
+    position: "absolute",
+    left: 0,
+    bottom: 100,
+    right: 0,
+    height: 100,
+    backgroundColor: 'blue',
+    flexDirection: "row",
+    alignItems: "center"
+  },
+  playbackButton: {
+    width: 60,
+    height: 60,
+    marginLeft: 10,
+    marginRight: 10,
+    borderRadius: 100 / 2,
+    backgroundColor: 'grey',
+    justifyContent: 'center',
+    alignItems: "center"
   }
 });
 
@@ -95,21 +115,20 @@ export default class Example extends Component {
   state = {
     isAudioEnabled: true,
     isVideoEnabled: true,
+    isStereoMode: false,
+    isPlaying: false,
+    playbackSpeed: 1.0,
     status: 'disconnected',
     participants: new Map(),
     videoTracks: new Map(),
-    token: ''
+    token: '',
+    iosToken: ''
   }
 
   componentWillMount () { 
     this.audioPlayer = new TwilioStereoTonePlayer();
     this.audioPlayer.preload("stereo_tone.wav")
-      .then( () => {
-        this.audioPlayer.play("stereo_tone.wav", true, 1.0, 1.0);
-      })
-      .catch( (e) => {
-        console.error("Failed to preload with error", e);
-      });
+    this.audioPlayer.preload("stereo_tone_2.wav")
   }
 
   componentWillUnmount () {
@@ -120,8 +139,11 @@ export default class Example extends Component {
     if (Platform.OS === 'android') {
       await this._requestAudioPermission()
       await this._requestCameraPermission()
+      this.refs.twilioVideo.connect({ accessToken: this.state.token, roomName: 'test', enableVideo: true  })
+    } else {
+      this.refs.twilioVideo.connect({ accessToken: this.state.iosToken, roomName: 'test', enableVideo: true })
     }
-    this.refs.twilioVideo.connect({ accessToken: this.state.token })
+    
     this.setState({status: 'connecting'})
   }
 
@@ -138,8 +160,43 @@ export default class Example extends Component {
     this.refs.twilioVideo.flipCamera()
   }
 
+  _onStereoButtonPress = () => {
+    // console.log("Switching Stereo Mode")
+    this.refs.twilioVideo.setStereoEnabled(!this.state.isStereoMode)
+      .then(isEnabled => this.setState({isStereoMode: isEnabled}))
+
+    this.audioPlayer.pause();
+    this.setState({isPlaying: false})
+  }
+
+  _onPlayTrackButtonPress = () => {
+    if (!this.state.isPlaying) {
+      // this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
+      this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
+      this.setState({isPlaying: true})
+    } else {
+      this.audioPlayer.pause();
+      this.setState({isPlaying: false})
+      this.setState({playbackSpeed: 1.0})
+    }
+  }
+
+  _onChangePlaybackSpeedPress = () => {
+    // this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
+    if (this.state.playbackSpeed < 2.0) {
+      this.setState({playbackSpeed: 2.0})
+    } else {
+      this.setState({playbackSpeed: 1.0})
+    }
+
+    // this.audioPlayer.setVolume(this.state.playbackSpeed/2.0);
+    this.audioPlayer.setPlaybackSpeed(this.state.playbackSpeed);
+  }
+
   _onRoomDidConnect = () => {
     this.setState({status: 'connected'})
+
+    // this.refs.twilioVideo.setStereoMode(true);
   }
 
   _onRoomDidDisconnect = ({error}) => {
@@ -242,6 +299,24 @@ export default class Example extends Component {
                 }
               </View>
             }
+            <View
+              style={styles.playbackContainer}>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onStereoButtonPress}>
+                <Text style={{fontSize: 12}}>{ this.state.isStereoMode ? "Make Mono" : "Make Stereo" }</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onPlayTrackButtonPress}>
+                <Text style={{fontSize: 12}}>{ this.state.isPlaying ? "Pause" : "Play" }</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onChangePlaybackSpeedPress}>
+                <Text style={{fontSize: 12}}>{"Play at " + this.state.playbackSpeed + "x"}</Text>
+              </TouchableOpacity>
+            </View>
             <View
               style={styles.optionsContainer}>
               <TouchableOpacity

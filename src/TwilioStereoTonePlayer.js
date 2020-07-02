@@ -1,5 +1,5 @@
 //
-//  A renderless component to play stereo sounds
+//  A component to play stereo sounds
 //
 //  Created by Umar Nizamani on 29/07/20.
 //
