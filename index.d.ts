@@ -4,6 +4,8 @@ declare module "react-native-twilio-video-webrtc"{
 
   interface TwilioVideoLocalViewProps extends ViewProps {
     enabled: boolean;
+    scalesType: number;
+    onTop?: boolean;
     ref?: React.Ref<any>;
   }
 
@@ -12,15 +14,16 @@ declare module "react-native-twilio-video-webrtc"{
       participantSid: string;
       videoTrackSid: string;
     };
+    scalesType: number;
     ref?: React.Ref<any>;
   }
 
-  interface Participant {
+  export interface Participant {
     sid: string;
     identity: string;
   }
 
-  interface Track {
+  export interface Track {
     enabled: boolean;
     trackName: string;
     trackSid: string;
