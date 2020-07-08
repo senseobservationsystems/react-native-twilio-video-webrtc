@@ -88,7 +88,7 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         try {
             assetFile = getReactApplicationContext().getAssets().openFd(filename);
         }  catch (Exception e) {
-            promise.reject(e);
+            promise.reject("error", "Unable to load file: " + filename, e);
             return;
         }
 
@@ -223,6 +223,9 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
     @ReactMethod
     public void terminate() {
         Log.v(TAG,"terminate");
+
+        // Make sure we pause any audio that might be being played right now
+        pause();
 
         // Free all allocated memory
         this.loadedFiles.clear();
