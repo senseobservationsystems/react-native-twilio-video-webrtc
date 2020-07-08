@@ -124,6 +124,9 @@ RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(flo
             return;
         }
     }
+
+    // Before we play a new tone, lets make sure we pause any tone that is currently playing
+    [self pause];
     
     // Try to schedule playback on the Twilio Custom Audio Device
     [[TwilioStereoTonePlayer audioDevice] playBuffer:fileToPlay isLooping:isLooping volume:volume playbackSpeed:playbackSpeed];

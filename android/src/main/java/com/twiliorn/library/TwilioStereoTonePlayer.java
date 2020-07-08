@@ -133,6 +133,9 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
             return;
         }
 
+        // Before we play a new tone, lets make sure we pause any tone that is currently playing
+        this.pause();
+
         // Time To Loop. 0 = Loop only once | -1 = Loop infinitely.
         int timesToLoop = 0;
         if (isLooping) {
