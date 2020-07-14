@@ -90,7 +90,6 @@ static size_t kMaximumFramesPerBuffer = 3072;
 @property (nonatomic, strong) AVAudioEngine *recordEngine;
 
 @property (nonatomic, strong) AVAudioPlayerNode *tonePlayer;
-@property (nonatomic, strong) AVAudioUnitEQ *toneEqUnit;
 @property (nonatomic, strong) AVAudioUnitTimePitch *tonePitchUnit;
 
 
@@ -337,16 +336,21 @@ static size_t kMaximumFramesPerBuffer = 3072;
     [self handleValidRouteChange];
 }
 
-- (void)playBuffer:(AVAudioPCMBuffer*)buffer isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed {
+- (bool)playBuffer:(AVAudioPCMBuffer*)buffer isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed {
     
     if (!self.playoutEngine) {
         NSLog(@"Trying to call playBuffer before playout engine is created!");
-        return;
+        return false;
+    } else {
+        if (self.playoutEngine.isRunning == false) {
+            NSLog(@"Trying to call playBuffer before playout engine is running!");
+            return false;
+        }
     }
 
     if (!self.tonePlayer) {
         NSLog(@"Trying to call playBuffer before tonePlayer is created!");
-        return;
+        return false;
     }
     
     // Set play out options to make audio loopable
@@ -361,7 +365,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
     volume = MIN(MAX(volume, 0.0f), 1.0f);
     
     self.tonePitchUnit.rate = playbackSpeed;
-    self.toneEqUnit.globalGain = volume;
+    self.tonePlayer.volume = volume;
     
     // Schedule the provided music buffer to play on the playoutFilePlayer
     [self.tonePlayer scheduleBuffer:buffer
@@ -371,6 +375,8 @@ static size_t kMaximumFramesPerBuffer = 3072;
     
     // Actually play the music on the node
     [self.tonePlayer play];
+    
+    return true;
 }
 
 - (void)pausePlayback {
@@ -383,13 +389,13 @@ static size_t kMaximumFramesPerBuffer = 3072;
 }
 
 - (void)setPlaybackVolume:(float)volume {
-    if (!self.toneEqUnit) {
-        NSLog(@"Trying to call setPlaybackVolume before toneEqUnit is created!");
+    if (!self.tonePlayer) {
+        NSLog(@"Trying to call setPlaybackVolume before tonePlayer is created!");
         return;
     }
     
-    NSLog(@"Setting Global Gain %f", volume);
-    [self.toneEqUnit setGlobalGain:volume];
+    NSLog(@"Setting Volume %f", volume);
+    [self.tonePlayer setVolume:volume];
 }
 
 - (void)setPlaybackSpeed:(float)playbackSpeed {
@@ -411,15 +417,12 @@ static size_t kMaximumFramesPerBuffer = 3072;
     // We create 3 audio unit nodes and connect them to the audio engine
     // Player -> EQ -> Time Pitch    
     self.tonePlayer = [[AVAudioPlayerNode alloc] init];
-    self.toneEqUnit = [[AVAudioUnitEQ alloc] init];
     self.tonePitchUnit = [[AVAudioUnitTimePitch alloc] init];
     
     [self.playoutEngine attachNode:self.tonePlayer];
-    [self.playoutEngine attachNode:self.toneEqUnit];
     [self.playoutEngine attachNode:self.tonePitchUnit];
     
-    [self.playoutEngine connect:self.tonePlayer to:self.toneEqUnit format:nil];
-    [self.playoutEngine connect:self.toneEqUnit to:self.tonePitchUnit format:nil];
+    [self.playoutEngine connect:self.tonePlayer to:self.tonePitchUnit format:nil];
     [self.playoutEngine connect:self.tonePitchUnit to:self.playoutEngine.mainMixerNode format:nil];
 }
 
@@ -429,11 +432,9 @@ static size_t kMaximumFramesPerBuffer = 3072;
             [self.tonePlayer stop];
         }
         [self.playoutEngine detachNode:self.tonePlayer];
-        [self.playoutEngine detachNode:self.toneEqUnit];
         [self.playoutEngine detachNode:self.tonePitchUnit];
 
         self.tonePlayer = nil;
-        self.toneEqUnit = nil;
         self.tonePitchUnit = nil;
     }
 }

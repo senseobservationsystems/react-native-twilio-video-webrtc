@@ -124,17 +124,7 @@ export default class Example extends Component {
     token: '',
     iosToken: ''
   }
-
-  componentWillMount () { 
-    this.audioPlayer = new TwilioStereoTonePlayer();
-    this.audioPlayer.preload("stereo_tone.wav")
-    this.audioPlayer.preload("stereo_tone_2.wav")
-  }
-
-  componentWillUnmount () {
-    this.audioPlayer.terminate();
-  }
-
+  
   _onConnectButtonPress = async () => {
     if (Platform.OS === 'android') {
       await this._requestAudioPermission()
@@ -143,12 +133,17 @@ export default class Example extends Component {
     } else {
       this.refs.twilioVideo.connect({ accessToken: this.state.iosToken, roomName: 'test', enableVideo: true })
     }
+
+    this.audioPlayer = new TwilioStereoTonePlayer();
+    this.audioPlayer.preload("stereo_tone.wav")
+    this.audioPlayer.preload("stereo_tone_2.wav")
     
     this.setState({status: 'connecting'})
   }
 
   _onEndButtonPress = () => {
     this.refs.twilioVideo.disconnect()
+    this.audioPlayer.terminate()
   }
 
   _onMuteButtonPress = () => {
@@ -172,7 +167,7 @@ export default class Example extends Component {
   _onPlayTrackButtonPress = () => {
     if (!this.state.isPlaying) {
       // this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
-      this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
+      this.audioPlayer.play("stereo_tone.wav", true, 1.0, 1.0);
       this.setState({isPlaying: true})
     } else {
       this.audioPlayer.pause();

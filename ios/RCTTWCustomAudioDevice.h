@@ -10,7 +10,7 @@
 NS_CLASS_AVAILABLE(NA, 11_0)
 @interface RCTTWCustomAudioDevice : NSObject <TVIAudioDevice>
 
-- (void)playBuffer:(AVAudioPCMBuffer*)buffer isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed;
+- (bool)playBuffer:(AVAudioPCMBuffer*)buffer isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed;
 - (void)pausePlayback;
 - (void)setPlaybackVolume:(float)volume;
 - (void)setPlaybackSpeed:(float)playbackSpeed;

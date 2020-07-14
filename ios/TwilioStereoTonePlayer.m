@@ -129,7 +129,10 @@ RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(flo
     [self pause];
     
     // Try to schedule playback on the Twilio Custom Audio Device
-    [[TwilioStereoTonePlayer audioDevice] playBuffer:fileToPlay isLooping:isLooping volume:volume playbackSpeed:playbackSpeed];
+    if ([[TwilioStereoTonePlayer audioDevice] playBuffer:fileToPlay isLooping:isLooping volume:volume playbackSpeed:playbackSpeed] == false) {
+        reject(@"Error", @"Unknown error trying to play file", NULL);
+        return;
+    };
     
     _volume = volume;
     _playbackSpeed = playbackSpeed;
@@ -187,6 +190,8 @@ RCT_EXPORT_METHOD(terminate) {
     NSLog(@"terminate");
     
     if (_loadedFiles) {
+        [self pause];
+        
         [_loadedFiles removeAllObjects];
 
         // We don't need to delete objectives in objective C as ARC will take care of unreferenced objects

@@ -31,6 +31,8 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         boolean isPlaying = false;
 
         Promise loadingPromise = null;
+        boolean playOnLoad = false;
+        boolean playLooping = false;
     }
 
     // A map containing FileName and ToneFile instances for all files that are called with preload
@@ -125,14 +127,27 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
             }
         }
 
+        // Get the actual tone file
         ToneFile toneFile = this.loadedFiles.get(filename);
+
+        this.volume = volume;
+        this.playbackSpeed = playbackSpeed;
 
         // We clear the object with the promise when the file is fully loaded, so if the loadingPromise is null that means we are still loading the file
         if (toneFile.loadingPromise != null) {
-            promise.reject("Error", "File is not loading yet. " + filename);
+            // These flags will cause the sound to play in onLoadComplete when the loading is actually finished
+            toneFile.playOnLoad = true;
+            toneFile.playLooping = isLooping;
             return;
         }
 
+        // Actually play the file
+        this._play(toneFile.id, isLooping);
+
+        promise.resolve(true);
+    }
+
+    private void _play(int toneID, boolean isLooping) {
         // Before we play a new tone, lets make sure we pause any tone that is currently playing
         this.pause();
 
@@ -142,11 +157,8 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
             timesToLoop = -1;
         }
 
-        this.volume = volume;
-        this.playbackSpeed = playbackSpeed;
-
-        this.soundPool.play(toneFile.id, this.volume, this.volume, 1, timesToLoop, this.playbackSpeed);
-        currentPlayingFile = toneFile.id;
+        this.soundPool.play(toneID, this.volume, this.volume, 1, timesToLoop, this.playbackSpeed);
+        currentPlayingFile = toneID;
     }
 
     @ReactMethod
@@ -231,11 +243,15 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         pause();
 
         // Free all allocated memory
-        this.loadedFiles.clear();
-        this.loadedFiles = null;
+        if (this.loadedFiles != null) {
+            this.loadedFiles.clear();
+            this.loadedFiles = null;
+        }
 
-        this.soundPool.release();
-        this.soundPool = null;
+        if (this.soundPool != null) {
+            this.soundPool.release();
+            this.soundPool = null;
+        }
     }
 
     //////////// Sound Pool Methods ////////////
@@ -256,6 +272,15 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
                 // Check if the file that was just loaded was loaded successfully
                 // Note: Status 0 = success, everything else = failed
                 if (status == 0) {
+
+                    // If the loading was triggered by the play function
+                    if (toneFile.playOnLoad) {
+                        this._play(toneFile.id, toneFile.playLooping);
+
+                        toneFile.playOnLoad = false;
+                        toneFile.playLooping = false;
+                    }
+
                     // Mark the file to be loaded correctly
                     toneFile.loadingPromise.resolve(true);
 
