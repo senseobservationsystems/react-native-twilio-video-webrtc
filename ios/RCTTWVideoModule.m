@@ -216,7 +216,11 @@ RCT_EXPORT_METHOD(stopLocalVideo) {
 RCT_EXPORT_METHOD(stopLocalAudio) {
   self.localAudioTrack = nil;
   self.audioDevice = nil;
-    TwilioStereoTonePlayer.audioDevice = nil;
+  TwilioStereoTonePlayer.audioDevice = nil;
+  
+  // Make sure the Data Track is cleaned up
+  self.localDataTrack = nil;
+  self.room = nil;
 }
 
 RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnabledWithResolver:(RCTPromiseResolveBlock)resolve
