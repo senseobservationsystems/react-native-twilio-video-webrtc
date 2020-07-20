@@ -353,6 +353,11 @@ static size_t kMaximumFramesPerBuffer = 3072;
         return false;
     }
     
+    if (!buffer) {
+        NSLog(@"Trying to play a NULL buffer!");
+        return false;
+    }
+    
     // Set play out options to make audio loopable
     AVAudioPlayerNodeBufferOptions options;
     if (isLooping) {

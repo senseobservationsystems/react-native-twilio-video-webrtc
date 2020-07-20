@@ -32,6 +32,7 @@
 @property (nonatomic, strong) NSMutableDictionary *loadedFiles;
 
 - (void)initialize:(int)maxAudioFiles;
+- (bool)loadFileIntoBuffer:(NSString*)filename rejecter:(RCTPromiseRejectBlock)reject;
 - (void)preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject;
 - (void)play:(NSString*)filename isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject;
 - (void)pause;
