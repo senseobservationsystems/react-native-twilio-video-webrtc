@@ -29,35 +29,27 @@ static RCTTWCustomAudioDevice *_audioDevice;
 }
 
 
-RCT_EXPORT_MODULE()
-
-RCT_EXPORT_METHOD(initialize:(int)maxLoadableFiles) {
-    _maxLoadableFiles = maxLoadableFiles;
-    _loadedFiles = [[NSMutableDictionary alloc]initWithCapacity:maxLoadableFiles];
-}
-
-RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-    NSLog(@"preload %@", filename);
-    
+- (bool)loadFileIntoBuffer:(NSString*)filename
+                           rejecter:(RCTPromiseRejectBlock)reject
+{
     NSError *err;
     
     // Sanity Check
     if (_loadedFiles == NULL) {
         reject(@"Error", [NSString stringWithFormat:@"Please call initialize first"], err);
-        return;
+        return false;
     }
     
     if ([_loadedFiles count] >= _maxLoadableFiles) {
         reject(@"Error", [NSString stringWithFormat:@"Trying to load more files than you called initialize with! Already loaded %i files", _maxLoadableFiles], err);
-        return;
+        return false;
     }
     
     // If we have already loaded this file then just instantly resolve the promise to be true
     if ([_loadedFiles objectForKey:filename] != NULL) {
-        resolve(@(true));
-        return;
+        return true;
     }
-
+    
     // Create a file path based on the local bundle as we only expect to play files that are locally on disk
     NSString *filepath = [NSString stringWithFormat:@"%@/%@", [[NSBundle mainBundle] bundlePath], filename];
     
@@ -72,7 +64,7 @@ RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)r
     AVAudioFile *file = [[AVAudioFile alloc] initForReading:url error:&err];
     if (err != NULL) {
         reject(@"Error", [NSString stringWithFormat:@"Failed to load file at path: %@", filepathEscaped], err);
-        return;
+        return false;
     }
     
     // Create an audio buffer to read the file into
@@ -83,12 +75,28 @@ RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)r
     BOOL success = [file readIntoBuffer:musicBuffer error:&err];
     if (!success) {
         reject(@"Error", [NSString stringWithFormat:@"Failed to read file into audio buffer at path: %@", filepathEscaped], err);
-        return;
+        return false;
     }
     
     [_loadedFiles setObject:musicBuffer forKey:filename];
+    
+    return true;
+}
 
-    resolve(@(true));
+
+RCT_EXPORT_MODULE()
+
+RCT_EXPORT_METHOD(initialize:(int)maxLoadableFiles) {
+    _maxLoadableFiles = maxLoadableFiles;
+    _loadedFiles = [[NSMutableDictionary alloc]initWithCapacity:maxLoadableFiles];
+}
+
+RCT_EXPORT_METHOD(preload:(NSString*)filename resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+    NSLog(@"preload %@", filename);
+
+    if ([self loadFileIntoBuffer:filename rejecter:reject]) {
+        resolve(@(true));
+    }
 }
 
 RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
@@ -114,15 +122,18 @@ RCT_EXPORT_METHOD(play:(NSString*)filename isLooping:(BOOL)isLooping volume:(flo
     if (fileToPlay == nil) {
         
         // Then make sure we load the file first
-        [self preload:filename resolver:resolve rejecter:reject];
+        if ([self loadFileIntoBuffer:filename rejecter:reject] == false) {
+            
+            // If there was an error loading the file, the promise is automatically rejected by loadFileIntoBuffer, hence we just return the function
+            return;
+        }
         
         fileToPlay = [_loadedFiles objectForKey:filename];
         
-        // If we still can't find the file, then there was probably an error loading the file.
-        // We will instantly return as we expect preload to already have called the rejection promise.
-        if (fileToPlay == nil) {
-            return;
-        }
+         if (fileToPlay == nil) {
+             reject(@"Error", @"Unknown error trying to load the file, this error should not be possible!", NULL);
+             return;
+         }
     }
 
     // Before we play a new tone, lets make sure we pause any tone that is currently playing
@@ -181,6 +192,10 @@ RCT_EXPORT_METHOD(setPlaybackSpeed:(float)playbackSpeed) {
 RCT_EXPORT_METHOD(release:(NSString*)filename) {
     NSLog(@"release %@", filename);
     
+    if (_currentPlayingFile == filename) {
+        [self pause];
+    }
+
     if (_loadedFiles) {
         [_loadedFiles removeObjectForKey:filename];
     }
