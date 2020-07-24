@@ -61,6 +61,18 @@ export default class extends Component {
      */
     onParticipantRemovedVideoTrack: PropTypes.func,
     /**
+     * Called when a new data track has been added
+     *
+     * @param {{participant, track}}
+     */
+    onParticipantAddedDataTrack: PropTypes.func,
+    /**
+     * Called when a data track has been removed
+     *
+     * @param {{participant, track}}
+     */
+    onParticipantRemovedDataTrack: PropTypes.func,
+    /**
      * Called when a new audio track has been added
      *
      * @param {{participant, track}}
@@ -97,6 +109,12 @@ export default class extends Component {
      */
     onParticipantDisabledAudioTrack: PropTypes.func,
     /**
+     * Called when an dataTrack receives a message
+     *
+     * @param {{message}}
+     */
+    onDataTrackMessageReceived: PropTypes.func,
+    /**
      * Called when the camera has started
      *
      */
@@ -106,6 +124,11 @@ export default class extends Component {
      *
      */
     onCameraWasInterrupted: PropTypes.func,
+    /**
+     * Called when the camera interruption has ended
+     *
+     */
+    onCameraInterruptionEnded: PropTypes.func,
     /**
      * Called when the camera has stopped runing with an error
      *
@@ -131,6 +154,7 @@ export default class extends Component {
     this.flipCamera = this.flipCamera.bind(this)
     this.connect = this.connect.bind(this)
     this.disconnect = this.disconnect.bind(this)
+    this.sendString = this.sendString.bind(this)
     this.setRemoteAudioPlayback = this.setRemoteAudioPlayback.bind(this)
   }
 
@@ -200,10 +224,12 @@ export default class extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
+   * @param  {boolean} enableVideo Don't start video unless it's necessary
+   * @param  {String} encodingParameters Control Encoding config
    */
-  connect ({ roomName, accessToken, enableVideo }) {
+  connect ({ roomName, accessToken, enableVideo, encodingParameters }) {
     this._startLocalVideo(enableVideo)
-    TWVideoModule.connect(accessToken, roomName)
+    TWVideoModule.connect(accessToken, roomName, encodingParameters)
   }
 
   /**
@@ -213,9 +239,17 @@ export default class extends Component {
     TWVideoModule.disconnect()
   }
 
+  /**
+   * SendString to datatrack
+   * @param  {String} message    The message string to send
+   */
+  sendString (message) {
+    TWVideoModule.sendString(message)
+  }
+
   _startLocalVideo (enabled) {
     const screenShare = this.props.screenShare || false
-    TWVideoModule.startLocalVideo(screenShare, enabled)
+    TWVideoModule.startLocalVideo(enabled)
   }
 
   _stopLocalVideo () {
@@ -269,6 +303,16 @@ export default class extends Component {
           this.props.onParticipantAddedVideoTrack(data)
         }
       }),
+      this._eventEmitter.addListener('participantAddedDataTrack', data => {
+        if (this.props.onParticipantAddedDataTrack) {
+          this.props.onParticipantAddedDataTrack(data)
+        }
+      }),
+      this._eventEmitter.addListener('participantRemovedDataTrack', data => {
+        if (this.props.onParticipantRemovedDataTrack) {
+          this.props.onParticipantRemovedDataTrack(data)
+        }
+      }),
       this._eventEmitter.addListener('participantRemovedVideoTrack', data => {
         if (this.props.onParticipantRemovedVideoTrack) {
           this.props.onParticipantRemovedVideoTrack(data)
@@ -304,6 +348,11 @@ export default class extends Component {
           this.props.onParticipantDisabledAudioTrack(data)
         }
       }),
+      this._eventEmitter.addListener('dataTrackMessageReceived', data => {
+        if (this.props.onDataTrackMessageReceived) {
+          this.props.onDataTrackMessageReceived(data)
+        }
+      }),
       this._eventEmitter.addListener('cameraDidStart', data => {
         if (this.props.onCameraDidStart) {
           this.props.onCameraDidStart(data)
@@ -312,6 +361,11 @@ export default class extends Component {
       this._eventEmitter.addListener('cameraWasInterrupted', data => {
         if (this.props.onCameraWasInterrupted) {
           this.props.onCameraWasInterrupted(data)
+        }
+      }),
+      this._eventEmitter.addListener('cameraInterruptionEnded', data => {
+        if (this.props.onCameraInterruptionEnded) {
+          this.props.onCameraInterruptionEnded(data)
         }
       }),
       this._eventEmitter.addListener('cameraDidStopRunning', data => {
