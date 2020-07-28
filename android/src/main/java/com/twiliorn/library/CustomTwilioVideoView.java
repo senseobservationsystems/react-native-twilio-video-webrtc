@@ -546,6 +546,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
             if (v != null && v.getVisibility() == View.VISIBLE) {
                 v.setMirror(!isBackCamera);
+            }
         }
     }
 
