@@ -291,7 +291,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             if (thumbnailVideoView != null && localVideoTrack != null) {
                 localVideoTrack.addRenderer(thumbnailVideoView);
             }
-            setThumbnailMirrorOnStart();
+            setThumbnailMirrorOnStart(thumbnailVideoView);
         }
         return true;
     }
@@ -1072,7 +1072,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         if (localVideoTrack != null) {
             localVideoTrack.addRenderer(v);
         }
-        setThumbnailMirrorOnStart();
+        setThumbnailMirrorOnStart(v);
     }
 
     private RemoteDataTrack.Listener remoteDataTrackListener() {
