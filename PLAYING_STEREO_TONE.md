@@ -18,7 +18,9 @@ To play an audio to be Stereo using the `TwilioStereoTonePlayer`.
 
 `TwilioStereoTonePlayer` is initialised by default to keep a maximum of 5 files in memory (i.e you can have a maximum of 5 files in memory), you are free to modify this number [here](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/blob/niceday/twilio-emdr-ready/src/TwilioStereoTonePlayer.js#L16) but beware that this will cause high memory usage.
 
-Every time you call `preload` or `play` for a file that you have not played previously, the file is loaded to memory and not released unless you call `release` or `releaseAll`.
+Every time you call `preload` or `play` for a file that you have not played previously, the file is loaded to memory and not released unless you call `release` or `terminate`.
+
+Note: If you call `terminate` you have to create a new `TwilioStereoTonePlayer` object to use the tone player.
 
 The `TwilioStereoTonePlayer` only plays 1 file at a time and if there is any other sound playing it is first paused before the new sound is played.
 
