@@ -3,7 +3,6 @@ package com.twiliorn.library;
 import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
 import android.media.SoundPool;
-import android.net.Uri;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -26,9 +25,6 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
     // A class to store information about a loaded/loading tone file
     private class ToneFile {
         int id = -1;
-        boolean loop = false;
-
-        boolean isPlaying = false;
 
         Promise loadingPromise = null;
         boolean playOnLoad = false;
@@ -40,6 +36,9 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
 
     // Properties for currently playing file
     private int currentPlayingFile = -1;
+
+    // Properties for currently playing stream
+    private int currentPlayingStream = -1;
     private float volume = 1.0f;
     private float playbackSpeed = 1.0f;
 
@@ -147,32 +146,17 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         promise.resolve(true);
     }
 
-    private void _play(int toneID, boolean isLooping) {
-        // Before we play a new tone, lets make sure we pause any tone that is currently playing
-        this.pause();
-
-        // Time To Loop. 0 = Loop only once | -1 = Loop infinitely.
-        int timesToLoop = 0;
-        if (isLooping) {
-            timesToLoop = -1;
-        }
-
-        this.soundPool.play(toneID, this.volume, this.volume, 1, timesToLoop, this.playbackSpeed);
-        currentPlayingFile = toneID;
-    }
-
     @ReactMethod
     public void pause() {
-        Log.v(TAG,"Pause");
+        Log.v(TAG, "Pause");
 
         // Sanity Check
-        if (this.soundPool == null && this.loadedFiles == null)
+        if (this.soundPool == null && this.loadedFiles == null) {
+            Log.w(TAG, "Ignoring pause as sound pool is not initialized");
             return;
-
-        if (currentPlayingFile >= 0) {
-            this.soundPool.pause(currentPlayingFile);
-            currentPlayingFile = -1;
         }
+
+        this._pause();
     }
 
     @ReactMethod
@@ -186,8 +170,8 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         this.volume = volume;
 
         // If we are playing a file when setVolume is called then make sure we update its volume
-        if (currentPlayingFile >= 0) {
-            this.soundPool.setVolume(currentPlayingFile, this.volume, this.volume);
+        if (currentPlayingStream >= 0) {
+            this.soundPool.setVolume(currentPlayingStream, this.volume, this.volume);
         }
     }
 
@@ -208,8 +192,8 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         this.playbackSpeed = speed;
 
         // If we are playing a file when setVolume is called then make sure we update its volume
-        if (currentPlayingFile >= 0) {
-            this.soundPool.setRate(currentPlayingFile, this.playbackSpeed);
+        if (currentPlayingStream >= 0) {
+            this.soundPool.setRate(currentPlayingStream, this.playbackSpeed);
         }
     }
 
@@ -251,6 +235,45 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         if (this.soundPool != null) {
             this.soundPool.release();
             this.soundPool = null;
+        }
+    }
+
+    /////////// Private Methods     ////////////
+    // We make the methods below private and also don't use any decorators (e.g @ReactMethod) to
+    // guarantee that the function runs synchronously and is private to not be accessible from
+    // ReactNative
+
+    /**
+     * _play is a private function, that plays the ID of the tone file that is passed to it
+     * @param toneID The ID of the file that should be played
+     * @param isLooping Boolean to specify if a file should loop infinitely or not
+     */
+    private void _play(int toneID, boolean isLooping) {
+        // Before we play a new tone, lets make sure we pause any tone that is currently playing
+        this._pause();
+
+        // Time To Loop. 0 = Loop only once | -1 = Loop infinitely.
+        int timesToLoop = 0;
+        if (isLooping) {
+            timesToLoop = -1;
+        }
+
+        currentPlayingStream = this.soundPool.play(toneID, this.volume, this.volume, 1, timesToLoop, this.playbackSpeed);
+        currentPlayingFile = toneID;
+    }
+
+    /**
+     * A private function to pause the stream that is currently playing
+     */
+    private void _pause() {
+        Log.v(TAG, "Pausing Tone " + currentPlayingStream);
+
+        if (currentPlayingStream >= 0) {
+            this.soundPool.pause(currentPlayingStream);
+            currentPlayingStream = -1;
+            currentPlayingFile = -1;
+        } else {
+            Log.w(TAG, "Trying to pause when no file is playing");
         }
     }
 
