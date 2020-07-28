@@ -276,24 +276,22 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     private boolean createLocalVideo(boolean enableVideo) {
+        if (!enableVideo) {
+            return true;
+        }
+
         // Share your camera
         cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.FRONT_CAMERA);
         if (cameraCapturer == null){
             cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.BACK_CAMERA);
         }
-        if (cameraCapturer == null){
-            WritableMap event = new WritableNativeMap();
-            event.putString("error", "No camera is supported on this device");
-            pushEvent(CustomTwilioVideoView.this, ON_CONNECT_FAILURE, event);
-            return false;
-        }
 
-        if (cameraCapturer.getSupportedFormats().size() > 0) {
+        if (cameraCapturer != null && cameraCapturer.getSupportedFormats().size() > 0) {
             localVideoTrack = LocalVideoTrack.create(getContext(), enableVideo, cameraCapturer, buildVideoConstraints());
             if (thumbnailVideoView != null && localVideoTrack != null) {
                 localVideoTrack.addRenderer(thumbnailVideoView);
             }
-            setThumbnailMirror();
+            setThumbnailMirrorOnStart(thumbnailVideoView);
         }
         return true;
     }
@@ -525,8 +523,29 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         if (cameraCapturer != null) {
             CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
             final boolean isBackCamera = (cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
-            if (thumbnailVideoView != null && thumbnailVideoView.getVisibility() == View.VISIBLE) {
-                thumbnailVideoView.setMirror(!isBackCamera);
+
+            // Previously, only thumbnailView has its mirroring set.
+            // This will make sure, that all Local Video have its mirroring set.
+            List<VideoRenderer> renderers = localVideoTrack.getRenderers();
+            for(VideoRenderer renderer:  renderers) {
+                if (renderer != null && renderer instanceof VideoView) {
+                    VideoView tempView = (VideoView) renderer;
+                    if (tempView.getVisibility() == View.VISIBLE) {
+                        tempView.setMirror(!isBackCamera);
+                    }
+                }
+            };
+        }
+    }
+
+    // This is to make sure that whenever Local Video is created, it has the correct mirroring
+    private static void setThumbnailMirrorOnStart(VideoView v) {
+        if (cameraCapturer != null) {
+            CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
+            final boolean isBackCamera = (cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
+
+            if (v != null && v.getVisibility() == View.VISIBLE) {
+                v.setMirror(!isBackCamera);
             }
         }
     }
@@ -543,6 +562,13 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     public void toggleVideo(boolean enabled) {
+        if (enabled && localVideoTrack == null) {
+            createLocalVideo(enabled);
+            if (localParticipant != null) {
+                localParticipant.publishTrack(localVideoTrack);
+            }
+        }
+        
         if (localVideoTrack != null) {
             localVideoTrack.enable(enabled);
 
@@ -1046,7 +1072,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         if (localVideoTrack != null) {
             localVideoTrack.addRenderer(v);
         }
-        setThumbnailMirror();
+        setThumbnailMirrorOnStart(v);
     }
 
     private RemoteDataTrack.Listener remoteDataTrackListener() {
