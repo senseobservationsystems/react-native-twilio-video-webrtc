@@ -66,6 +66,8 @@ import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
 import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
+import com.twilio.video.VideoRenderer;
+import com.twilio.video.VideoView;
 
 import com.twilio.audioswitch.selection.AudioDevice;
 import com.twilio.audioswitch.selection.AudioDevice.BluetoothHeadset;
@@ -534,7 +536,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                         tempView.setMirror(!isBackCamera);
                     }
                 }
-            };
+            }
         }
     }
 
