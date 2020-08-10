@@ -118,7 +118,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
         // Setup the AVAudioEngine along with the rendering context
         if (![self setupPlayoutAudioEngine]) {
-            NSLog(@"Failed to setup AVAudioEngine");
+            NSLog(@"CustomAudioDevice [ERROR] Failed to setup AVAudioEngine");
         }
 
         // Initialize the capturing context
@@ -128,7 +128,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
         
         // Setup the AVAudioEngine along with the rendering context
         if (![self setupRecordAudioEngine]) {
-            NSLog(@"Failed to setup AVAudioEngine");
+            NSLog(@"CustomAudioDevice [ERROR] Failed to setup AVAudioEngine");
         }
         
         [self setupAVAudioSession];
@@ -170,7 +170,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
     AudioUnit audioUnit;
     OSStatus status = AudioComponentInstanceNew(audioComponent, &audioUnit);
     if (status != 0) {
-        NSLog(@"Could not find VoiceProcessingIO AudioComponent instance!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not find VoiceProcessingIO AudioComponent instance!");
         return;
     }
 
@@ -180,12 +180,12 @@ static size_t kMaximumFramesPerBuffer = 3072;
                                   kAudioUnitScope_Global, kOutputBus,
                                   &framesPerSlice, &propertySize);
     if (status != 0) {
-        NSLog(@"Could not read VoiceProcessingIO AudioComponent instance!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not read VoiceProcessingIO AudioComponent instance!");
         AudioComponentInstanceDispose(audioUnit);
         return;
     }
 
-    NSLog(@"This device uses a maximum slice size of %d frames.", (unsigned int)framesPerSlice);
+    NSLog(@"CustomAudioDevice [DEBUG] This device uses a maximum slice size of %d frames.", (unsigned int)framesPerSlice);
     kMaximumFramesPerBuffer = (size_t)framesPerSlice;
     AudioComponentInstanceDispose(audioUnit);
 }
@@ -214,7 +214,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
                                            maximumFrameCount:(uint32_t)kMaximumFramesPerBuffer
                                                        error:&error];
     if (!success) {
-        NSLog(@"Failed to setup manual rendering mode, error = %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] Failed to setup manual rendering mode, error = %@", error);
         return NULL;
     }
 
@@ -229,7 +229,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
 }
 
 - (BOOL)setupRecordAudioEngine {
-    NSAssert(_recordEngine == nil, @"AVAudioEngine is already configured");
+    NSAssert(_recordEngine == nil, @"CustomAudioDevice [ERROR] AVAudioEngine is already configured");
 
     NSError *error = nil;
     _recordEngine = [self setupGenericAudioEngine:error];
@@ -242,7 +242,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
     
     if (![_recordEngine startAndReturnError:&error]) {
-        NSLog(@"Failed to start AVAudioEngine, error = %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] Failed to start AVAudioEngine, error = %@", error);
         return NO;
     }
 
@@ -250,12 +250,12 @@ static size_t kMaximumFramesPerBuffer = 3072;
 }
 
 - (BOOL)setupPlayoutAudioEngine {
-    NSAssert(_playoutEngine == nil, @"AVAudioEngine is already configured");
+    NSAssert(_playoutEngine == nil, @"CustomAudioDevice [ERROR] AVAudioEngine is already configured");
 
     NSError *error = nil;
     _playoutEngine = [self setupGenericAudioEngine:error];
     if (error != nil || _playoutEngine == nil) {
-        NSLog(@"Failed to create audio engine, error = %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] Failed to create audio engine, error = %@", error);
     }
 
     const AudioStreamBasicDescription asbd = [[[self class] activeFormat] streamDescription];
@@ -296,7 +296,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
                                                    return bufferList;
                                                }];
     if (!success) {
-        NSLog(@"Failed to set the manual rendering block");
+        NSLog(@"CustomAudioDevice [ERROR] Failed to set the manual rendering block");
         return NO;
     }
 
@@ -305,7 +305,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
     success = [_playoutEngine startAndReturnError:&error];
     if (!success) {
-        NSLog(@"Failed to start AVAudioEngine, error = %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] Failed to start AVAudioEngine, error = %@", error);
         return NO;
     }
 
@@ -339,22 +339,22 @@ static size_t kMaximumFramesPerBuffer = 3072;
 - (bool)playBuffer:(AVAudioPCMBuffer*)buffer isLooping:(BOOL)isLooping volume:(float)volume playbackSpeed:(float)playbackSpeed {
     
     if (!self.playoutEngine) {
-        NSLog(@"Trying to call playBuffer before playout engine is created!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to call playBuffer before playout engine is created!");
         return false;
     } else {
         if (self.playoutEngine.isRunning == false) {
-            NSLog(@"Trying to call playBuffer before playout engine is running!");
+            NSLog(@"CustomAudioDevice [ERROR] Trying to call playBuffer before playout engine is running!");
             return false;
         }
     }
 
     if (!self.tonePlayer) {
-        NSLog(@"Trying to call playBuffer before tonePlayer is created!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to call playBuffer before tonePlayer is created!");
         return false;
     }
     
     if (!buffer) {
-        NSLog(@"Trying to play a NULL buffer!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to play a NULL buffer!");
         return false;
     }
     
@@ -386,7 +386,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
 - (void)pausePlayback {
     if (!self.tonePlayer) {
-        NSLog(@"Trying to call pausePlayback before tonePlayer is created!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to call pausePlayback before tonePlayer is created!");
         return;
     }
     
@@ -395,27 +395,27 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
 - (void)setPlaybackVolume:(float)volume {
     if (!self.tonePlayer) {
-        NSLog(@"Trying to call setPlaybackVolume before tonePlayer is created!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to call setPlaybackVolume before tonePlayer is created!");
         return;
     }
     
-    NSLog(@"Setting Volume %f", volume);
+    NSLog(@"CustomAudioDevice [DEBUG] Setting Volume %f", volume);
     [self.tonePlayer setVolume:volume];
 }
 
 - (void)setPlaybackSpeed:(float)playbackSpeed {
     if (!self.tonePitchUnit) {
-        NSLog(@"Trying to call setPlaybackSpeed before tonePitchUnit is created!");
+        NSLog(@"CustomAudioDevice [ERROR] Trying to call setPlaybackSpeed before tonePitchUnit is created!");
         return;
     }
     
-    NSLog(@"Setting tonePitchUnit Rate %f", playbackSpeed);
+    NSLog(@"CustomAudioDevice [DEBUG] Setting tonePitchUnit Rate %f", playbackSpeed);
     [self.tonePitchUnit setRate:playbackSpeed];
 }
 
 - (void)createTonePlayerOnPlayoutEngine {
     if (!self.playoutEngine) {
-        NSLog(@"Cannot createTonePlayerOnPlayoutEngine. AudioEngine has not been created yet.");
+        NSLog(@"CustomAudioDevice [ERROR] Cannot createTonePlayerOnPlayoutEngine. AudioEngine has not been created yet.");
         return;
     }
 
@@ -493,7 +493,7 @@ static size_t kMaximumFramesPerBuffer = 3072;
                 
                 NSError *error = nil;
                 if (![self.playoutEngine startAndReturnError:&error]) {
-                    NSLog(@"Failed to start AVAudioEngine, error = %@", error);
+                    NSLog(@"CustomAudioDevice [ERROR] Failed to start AVAudioEngine, error = %@", error);
                 }
             } else {
                 [self teardownPlayoutFilePlayer];
@@ -569,8 +569,11 @@ static size_t kMaximumFramesPerBuffer = 3072;
 - (BOOL)startCapturing:(nonnull TVIAudioDeviceContext)context {
     @synchronized (self) {
 
+        NSLog(@"CustomAudioDevice [DEBUG] startCapturing");
+        
         // Restart the audio unit if the audio graph is alreay setup and if we publish an audio track.
         if (_audioUnit) {
+            NSLog(@"CustomAudioDevice [DEBUG] Tearing down audio unit");
             [self stopAudioUnit];
             [self teardownAudioUnit];
         }
@@ -582,15 +585,18 @@ static size_t kMaximumFramesPerBuffer = 3072;
                                                                          sampleRate:manualRenderingFormat.sampleRate
                                                                     framesPerBuffer:kMaximumFramesPerBuffer];
             if ([engineFormat isEqual:[[self class] activeFormat]]) {
+                NSLog(@"CustomAudioDevice [DEBUG] engineFormat isEqualTo activeFormat");
                 if (self.recordEngine.isRunning) {
                     [self.recordEngine stop];
                 }
                 
                 NSError *error = nil;
                 if (![self.recordEngine startAndReturnError:&error]) {
-                    NSLog(@"Failed to start AVAudioEngine, error = %@", error);
+                    NSLog(@"CustomAudioDevice [ERROR] Failed to start AVAudioEngine, error = %@", error);
                 }
             } else {
+                NSLog(@"CustomAudioDevice [DEBUG] engineFormat isNotEqualTo activeFormat");
+                
                 [self teardownRecordAudioEngine];
                 [self setupRecordAudioEngine];
             }
@@ -600,10 +606,13 @@ static size_t kMaximumFramesPerBuffer = 3072;
 
         if (![self setupAudioUnitWithRenderContext:self.renderingContext
                                     captureContext:self.capturingContext]) {
+            NSLog(@"CustomAudioDevice [ERROR] Failed to setupAudioUnitWithRenderAndCaptureContext");
             return NO;
         }
-
+        
         BOOL success = [self startAudioUnit];
+        NSLog(@"CustomAudioDevice [DEBUG] Started Audio Unit Successfully? %d", success);
+        
         return success;
     }
 }
@@ -660,7 +669,7 @@ static OSStatus CustomAudioDevicePlayoutCallback(void *refCon,
      */
     if (numFrames > context->maxFramesPerBuffer || status != AVAudioEngineManualRenderingStatusSuccess) {
         if (numFrames > context->maxFramesPerBuffer) {
-            NSLog(@"Can handle a max of %u frames but got %u.", (unsigned int)context->maxFramesPerBuffer, (unsigned int)numFrames);
+            NSLog(@"CustomAudioDevice [ERROR] Can handle a max of %u frames but got %u.", (unsigned int)context->maxFramesPerBuffer, (unsigned int)numFrames);
         }
         *actionFlags |= kAudioUnitRenderAction_OutputIsSilence;
         memset(audioBuffer, 0, audioBufferSizeInBytes);
@@ -677,13 +686,14 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                                          AudioBufferList *bufferList) NS_AVAILABLE(NA, 11_0) {
 
     if (numFrames > kMaximumFramesPerBuffer) {
-        NSLog(@"Expected %u frames but got %u.", (unsigned int)kMaximumFramesPerBuffer, (unsigned int)numFrames);
+        NSLog(@"CustomAudioDevice [ERROR] Expected %u frames but got %u.", (unsigned int)kMaximumFramesPerBuffer, (unsigned int)numFrames);
         return noErr;
     }
 
     AudioCapturerContext *context = (AudioCapturerContext *)refCon;
 
     if (context->deviceContext == NULL) {
+        NSLog(@"CustomAudioDevice [ERROR] Ignoring capture callback because there is no deviceContext");
         return noErr;
     }
 
@@ -713,14 +723,16 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
     const AVAudioEngineManualRenderingStatus ret = renderBlock(numFrames, mixedAudioBufferList, &outputStatus);
 
     if (ret != AVAudioEngineManualRenderingStatusSuccess) {
-        NSLog(@"AVAudioEngine failed mix audio");
+        NSLog(@"CustomAudioDevice [ERROR] AVAudioEngine failed mix audio");
     }
 
     int8_t *audioBuffer = (int8_t *)mixedAudioBufferList->mBuffers[0].mData;
     UInt32 audioBufferSizeInBytes = mixedAudioBufferList->mBuffers[0].mDataByteSize;
-
+    
     if (context->deviceContext && audioBuffer) {
         TVIAudioDeviceWriteCaptureData(context->deviceContext, audioBuffer, audioBufferSizeInBytes);
+    } else {
+        NSLog(@"CustomAudioDevice [ERROR] No Audio Buffer to write capture data");
     }
 
     return noErr;
@@ -770,34 +782,34 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
      * a mismatch then TwilioVideo will ensure that appropriately sized audio buffers are delivered.
      */
     if (![session setPreferredIOBufferDuration:kPreferredIOBufferDuration error:&error]) {
-        NSLog(@"Error setting IOBuffer duration: %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] setting IOBuffer duration: %@", error);
     }
 
     if (isStereo) {
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetoothA2DP error:&error]) {
-            NSLog(@"Error setting session category: %@", error);
+            NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
         }
     } else {
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetoothA2DP|AVAudioSessionCategoryOptionAllowBluetooth error:&error]) {
-            NSLog(@"Error setting session category: %@", error);
+            NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
         }
     }
 //
     if (![session setMode:AVAudioSessionModeVideoChat error:&error]) {
-        NSLog(@"Error setting session category: %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
     }
     
     if (![session setPreferredSampleRate:kPreferredSampleRate error:&error]) {
-        NSLog(@"Error setting sample rate: %@", error);
+        NSLog(@"CustomAudioDevice [ERROR] setting sample rate: %@", error);
     }
 
     if (isStereo) {
         if (![session setPreferredOutputNumberOfChannels:2 error:&error]) {
-            NSLog(@"Error setting number of output channels: %@", error);
+            NSLog(@"CustomAudioDevice [ERROR] setting number of output channels: %@", error);
         }
     } else {
         if (![session setPreferredOutputNumberOfChannels:1 error:&error]) {
-            NSLog(@"Error setting number of output channels: %@", error);
+            NSLog(@"CustomAudioDevice [ERROR] setting number of output channels: %@", error);
         }
     }
     
@@ -814,7 +826,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 
     OSStatus status = AudioComponentInstanceNew(audioComponent, &_audioUnit);
     if (status != 0) {
-        NSLog(@"Could not find VoiceProcessingIO AudioComponent instance!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not find VoiceProcessingIO AudioComponent instance!");
         return NO;
     }
 
@@ -829,7 +841,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   kAudioUnitScope_Output, kOutputBus,
                                   &enableOutput, sizeof(enableOutput));
     if (status != 0) {
-        NSLog(@"Could not enable out bus!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not enable out bus!");
         AudioComponentInstanceDispose(_audioUnit);
         _audioUnit = NULL;
         return NO;
@@ -839,7 +851,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   kAudioUnitScope_Output, kInputBus,
                                   &streamDescription, sizeof(streamDescription));
     if (status != 0) {
-        NSLog(@"Could not set stream format on input bus!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not set stream format on input bus!");
         return NO;
     }
 
@@ -847,7 +859,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   kAudioUnitScope_Input, kOutputBus,
                                   &streamDescription, sizeof(streamDescription));
     if (status != 0) {
-        NSLog(@"Could not set stream format on output bus!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not set stream format on output bus!");
         return NO;
     }
 
@@ -858,7 +870,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   sizeof(enableInput));
 
     if (status != 0) {
-        NSLog(@"Could not enable input bus!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not enable input bus!");
         AudioComponentInstanceDispose(_audioUnit);
         _audioUnit = NULL;
         return NO;
@@ -872,7 +884,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   kAudioUnitScope_Output, kOutputBus, &renderCallback,
                                   sizeof(renderCallback));
     if (status != 0) {
-        NSLog(@"Could not set rendering callback!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not set rendering callback!");
         AudioComponentInstanceDispose(_audioUnit);
         _audioUnit = NULL;
         return NO;
@@ -886,7 +898,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
                                   kAudioUnitScope_Input, kInputBus, &captureCallback,
                                   sizeof(captureCallback));
     if (status != 0) {
-        NSLog(@"Could not set capturing callback!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not set capturing callback!");
         AudioComponentInstanceDispose(_audioUnit);
         _audioUnit = NULL;
         return NO;
@@ -895,12 +907,12 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
     // Try to initalize the Audio Unit a max of kMaxNumberOfAudioUnitInitializeAttempts
     NSInteger failedInitializeAttempts = 0;
     while (status != noErr) {
-        NSLog(@"Failed to initialize the Voice Processing I/O unit. Error= %ld.", (long)status);
+        NSLog(@"CustomAudioDevice [ERROR] Failed to initialize the Voice Processing I/O unit. Error= %ld.", (long)status);
         ++failedInitializeAttempts;
         if (failedInitializeAttempts == kMaxNumberOfAudioUnitInitializeAttempts) {
             break;
         }
-        NSLog(@"Pause 100ms and try audio unit initialization again.");
+        NSLog(@"CustomAudioDevice [ERROR] Pause 100ms and try audio unit initialization again.");
         [NSThread sleepForTimeInterval:0.1f];
         
         // Finally, initialize and start the audio unit.
@@ -909,7 +921,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 
     // If we still weren't able to initialize the AudioUnit, return failure
     if (status != 0) {
-        NSLog(@"Could not initialize the audio unit!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not initialize the audio unit!");
         AudioComponentInstanceDispose(_audioUnit);
         _audioUnit = NULL;
         return NO;
@@ -923,7 +935,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 - (BOOL)startAudioUnit {
     OSStatus status = AudioOutputUnitStart(_audioUnit);
     if (status != 0) {
-        NSLog(@"Could not start the audio unit!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not start the audio unit!");
         return NO;
     }
     return YES;
@@ -932,7 +944,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 - (BOOL)stopAudioUnit {
     OSStatus status = AudioOutputUnitStop(_audioUnit);
     if (status != 0) {
-        NSLog(@"Could not stop the audio unit!");
+        NSLog(@"CustomAudioDevice [ERROR] Could not stop the audio unit!");
         return NO;
     }
     return YES;
@@ -977,11 +989,11 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
         if (context) {
             TVIAudioDeviceExecuteWorkerBlock(context, ^{
                 if (type == AVAudioSessionInterruptionTypeBegan) {
-                    NSLog(@"Interruption began.");
+                    NSLog(@"CustomAudioDevice [DEBUG] Interruption began.");
                     self.interrupted = YES;
                     [self stopAudioUnit];
                 } else {
-                    NSLog(@"Interruption ended.");
+                    NSLog(@"CustomAudioDevice [DEBUG] Interruption ended.");
                     self.interrupted = NO;
                     [self startAudioUnit];
                 }
@@ -997,7 +1009,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
         if (context) {
             TVIAudioDeviceExecuteWorkerBlock(context, ^{
                 if (self.isInterrupted) {
-                    NSLog(@"Synthesizing an interruption ended event for iOS 9.x devices.");
+                    NSLog(@"CustomAudioDevice [DEBUG] Synthesizing an interruption ended event for iOS 9.x devices.");
                     self.interrupted = NO;
                     [self startAudioUnit];
                 }
@@ -1044,7 +1056,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
         return;
     }
 
-    NSLog(@"A route change ocurred while the AudioUnit was started. Checking the active audio format.");
+    NSLog(@"CustomAudioDevice [DEBUG] A route change ocurred while the AudioUnit was started. Checking the active audio format.");
 
     // Determine if the format actually changed. We only care about sample rate and number of channels.
     TVIAudioFormat *activeFormat = [[self class] activeFormat];
@@ -1053,7 +1065,7 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
     if (![activeFormat isEqual:_renderingFormat] ||
         ![activeFormat isEqual:_capturingFormat]) {
 
-        NSLog(@"Format changed, restarting with %@", activeFormat);
+        NSLog(@"CustomAudioDevice [WARN] Format changed, restarting with %@", activeFormat);
 
         // Signal a change by clearing our cached format, and allowing TVIAudioDevice to drive the process.
         _renderingFormat = nil;
@@ -1098,6 +1110,113 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 
 - (void)unregisterAVAudioSessionObservers {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)debugCurrentRoute:(char*) prefix audiounit:(AudioUnit)customAudioUnit {
+    const char* TAG = "CustomAudioDevice [DEBUG]";
+    
+    NSLog(@"%s| ---- %s ----", TAG, prefix );
+    
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    AudioUnit debugUnit;
+    
+    if (customAudioUnit != NULL) {
+        debugUnit = customAudioUnit;
+    } else {
+        debugUnit = _audioUnit;
+    }
+        
+    NSLog(@"%s| Max output channels: %ldd", TAG, (long)[session maximumOutputNumberOfChannels]);
+    NSLog(@"%s| Preferred output channels: %ldd", TAG, (long)[session preferredOutputNumberOfChannels]);
+    NSLog(@"%s| Current output channels: %ldd", TAG, (long)[session outputNumberOfChannels]);
+    
+//    NSLog(@"%s - Current route: %@", prefix, [session currentRoute]);
+    
+    NSArray<AVAudioSessionPortDescription *> *outputs = [[session currentRoute] outputs];
+    for (AVAudioSessionPortDescription* device in outputs) {
+        NSLog(@"%s| Name %@", TAG, device.portName);
+        NSArray<AVAudioSessionChannelDescription *> *channels = [device channels];
+         for (AVAudioSessionChannelDescription* channel in channels) {
+             NSLog(@"%s| Channel %@", TAG, channel.channelName);
+         }
+    }
+    
+    NSArray<AVAudioSessionPortDescription *> *inputs = [[session currentRoute] inputs];
+    for (AVAudioSessionPortDescription* device in inputs) {
+        NSLog(@"%s| Name %@", TAG, device.portName);
+        NSArray<AVAudioSessionChannelDescription *> *channels = [device channels];
+         for (AVAudioSessionChannelDescription* channel in channels) {
+             NSLog(@"%s| Channel %@", TAG, channel.channelName);
+         }
+    }
+    
+    if (debugUnit) {
+        OSStatus status;
+        AudioStreamBasicDescription streamDesc;
+        UInt32 streamDescSize = sizeof(streamDesc);
+        
+        status = AudioUnitGetProperty(debugUnit,
+                             kAudioUnitProperty_StreamFormat,
+                             kAudioUnitScope_Global,
+                             kOutputBus,
+                             &streamDesc,
+                             &streamDescSize);
+        if (status != 0) {
+            NSLog(@"%s| Could not read kAudioUnitProperty_StreamFormat from the audiounit! %d", TAG, (int)status);
+             return;
+         }
+        
+        NSLog(@"%s| Global - Stream channels per frame %u", TAG, (unsigned int)streamDesc.mChannelsPerFrame);
+        
+        status = AudioUnitGetProperty(debugUnit,
+                             kAudioUnitProperty_StreamFormat,
+                             kAudioUnitScope_Input,
+                             kOutputBus,
+                             &streamDesc,
+                             &streamDescSize);
+        if (status != 0) {
+            NSLog(@"%s| Could not read kAudioUnitProperty_StreamFormat from the audiounit! %d", TAG, (int)status);
+             return;
+         }
+        
+        NSLog(@"%s| Input of output bus - Stream channels per frame %u", TAG, (unsigned int)streamDesc.mChannelsPerFrame);
+        
+        streamDesc.mChannelsPerFrame = 1;
+        status = AudioUnitGetProperty(debugUnit,
+                             kAudioUnitProperty_StreamFormat,
+                             kAudioUnitScope_Output,
+                             kInputBus,
+                             &streamDesc,
+                             &streamDescSize);
+        if (status != 0) {
+            NSLog(@"%s| Could not read kAudioUnitProperty_StreamFormat from the audiounit! %d", TAG, (int)status);
+             return;
+         }
+        status = AudioUnitGetProperty(debugUnit,
+                            kAudioUnitProperty_StreamFormat,
+                            kAudioUnitScope_Input,
+                            kOutputBus,
+                            &streamDesc,
+                            &streamDescSize);
+        
+        NSLog(@"%s| Output of input bus - Stream channels per frame %u", TAG, (unsigned int)streamDesc.mChannelsPerFrame);
+
+        UInt32 hasIO = 0;
+        UInt32 size = sizeof(hasIO);
+        status = AudioUnitGetProperty(debugUnit,
+                                  kAudioOutputUnitProperty_HasIO,
+                                  kAudioUnitScope_Input,
+                                  kInputBus,
+                                  &hasIO,
+                                  &size);
+        if (status != 0) {
+            NSLog(@"%s| Could not get kAudioOutputUnitProperty_HasIO from the audiounit! %d", TAG, (int)status);
+        } else {
+            NSLog(@"%s| Global Has IO %u", TAG, (unsigned int)hasIO);
+        }
+        
+    }
+
 }
 
 @end
