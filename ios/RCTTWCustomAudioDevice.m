@@ -236,6 +236,22 @@ static size_t kMaximumFramesPerBuffer = 3072;
     if (error != nil || _playoutEngine == nil) {
         NSLog(@"Failed to create audio engine, error = %@", error);
     }
+    
+    const AudioStreamBasicDescription asbd = [[[self class] activeFormat] streamDescription];
+    AVAudioFormat *format = [[AVAudioFormat alloc] initWithStreamDescription:&asbd];
+    
+    // Set the block to provide input data to engine
+    AVAudioInputNode *inputNode = _recordEngine.inputNode;
+    AudioBufferList *captureBufferList = &_captureBufferList;
+    BOOL success = [inputNode setManualRenderingInputPCMFormat:format
+                                               inputBlock: ^const AudioBufferList * _Nullable(AVAudioFrameCount inNumberOfFrames) {
+                                                   assert(inNumberOfFrames <= kMaximumFramesPerBuffer);
+                                                   return captureBufferList;
+                                               }];
+    if (!success) {
+        NSLog(@"CustomAudioDevice [ERROR] Failed to set the manual rendering block");
+        return NO;
+    }
 
     // The manual rendering block (called in Core Audio's VoiceProcessingIO's playout callback at real time)
     self.capturingContext->renderBlock = (__bridge void *)(_recordEngine.manualRenderingBlock);
