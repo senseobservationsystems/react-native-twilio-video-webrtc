@@ -74,6 +74,12 @@ static bool isStereo;
 // This is the maximum slice size for VoiceProcessingIO (as observed in the field). We will double check at initialization time.
 static size_t kMaximumFramesPerBuffer = 3072;
 
+// Static prpoperties for automatic gain control during stereo playback
+static float agc_rate = 1e-4;
+static float agc_reference = 0.7;
+static float agc_gain = 6.0;
+static float agc_max_gain = 12.0;
+
 @interface RCTTWCustomAudioDevice()
 
 @property (nonatomic, assign, getter=isInterrupted) BOOL interrupted;
@@ -744,8 +750,43 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
 
     int8_t *audioBuffer = (int8_t *)mixedAudioBufferList->mBuffers[0].mData;
     UInt32 audioBufferSizeInBytes = mixedAudioBufferList->mBuffers[0].mDataByteSize;
+
+    UInt16 *audioProcessingBuffer = (UInt16 *)mixedAudioBufferList->mBuffers[0].mData;
+    
+    int sizeOfSample = sizeof(UInt16);
+    
+//    double totalAmplitude = 0;
+    
+    for (int i=0;i<audioBufferSizeInBytes/sizeOfSample;i++) {
+        if (isStereo) {
+            audioProcessingBuffer[i*sizeOfSample] *= 8;
+            
+//            // The buffer works in UInt16 format so lets divide it by the MAX value of a UInt16
+//            float currentSignal = (float)audioProcessingBuffer[i*sizeOfSample] / (float)UINT16_MAX;
+//
+//            // Perform Automatic Gain Control
+//            // Copied from GNU Radio: https://www.gnuradio.org/doc/doxygen/agc_8h_source.html
+//            float outputSignal = currentSignal * agc_gain;
+//
+//            // Ensure we perform the correct gain when processing the next sample
+//            agc_gain += (agc_reference - fabsf(currentSignal)) * agc_rate;
+//            if (agc_max_gain > 0.0 && agc_gain > agc_max_gain)
+//                agc_gain = agc_max_gain;
+//
+//            // Set the gain controlled signal to be the current signal
+//            audioProcessingBuffer[i*sizeOfSample] = (UInt16)(outputSignal*UINT16_MAX);
+        }
+
+//        totalAmplitude += audioProcessingBuffer[i*sizeOfSample];
+//        [logSamples appendString:[NSString stringWithFormat:@"%d", cVal]];
+//        [logSamples appendString:@"-"];
+    }
+    
+//    totalAmplitude = totalAmplitude / (double)(audioBufferSizeInBytes/sizeOfSample);
     
     if (context->deviceContext && audioBuffer) {
+//        NSLog(@"CustomAudioDevice [VERBOSE] %@ \n\nAmplitude: %f", logSamples, totalAmplitude);
+//        NSLog(@"CustomAudioDevice [VERBOSE] Amplitude: %f - Gain: %f", totalAmplitude, agc_gain);
         TVIAudioDeviceWriteCaptureData(context->deviceContext, audioBuffer, audioBufferSizeInBytes);
     } else {
         NSLog(@"CustomAudioDevice [ERROR] No Audio Buffer to write capture data");
