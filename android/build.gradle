@@ -51,6 +51,6 @@ dependencies {
     implementation "com.android.support:appcompat-v7:$androidSupportVersion"
     implementation "com.twilio:video-android:5.5.0"
     implementation 'org.webrtc:google-webrtc:1.0.+'
-    implementation "com.twilio:audioswitch:0.1.5"
+    implementation "com.twilio:audioswitch:1.0.1"
     implementation "com.facebook.react:react-native:+"  // From node_modules
 }
