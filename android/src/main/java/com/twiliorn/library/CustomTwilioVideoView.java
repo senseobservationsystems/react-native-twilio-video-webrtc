@@ -69,12 +69,8 @@ import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoView;
 
-import com.twilio.audioswitch.selection.AudioDevice;
-import com.twilio.audioswitch.selection.AudioDevice.BluetoothHeadset;
-import com.twilio.audioswitch.selection.AudioDevice.WiredHeadset;
-import com.twilio.audioswitch.selection.AudioDevice.Earpiece;
-import com.twilio.audioswitch.selection.AudioDevice.Speakerphone;
-import com.twilio.audioswitch.selection.AudioDeviceSelector;
+import com.twilio.audioswitch.AudioDevice;
+import com.twilio.audioswitch.AudioSwitch;
 
 import org.webrtc.voiceengine.WebRtcAudioManager;
 
@@ -185,7 +181,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean disconnectedFromOnDestroy;
 
     // Audio Management
-    private AudioDeviceSelector audioDeviceSelector;
+    private AudioSwitch audioDeviceSelector;
     private int savedVolumeControlStream;
 
     // Dedicated thread and handler for messages received from a RemoteDataTrack
@@ -215,9 +211,35 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
         }
 
-        audioDeviceSelector = new AudioDeviceSelector(themedReactContext);
+        audioDeviceSelector = new AudioSwitch(themedReactContext);
+        audioDeviceSelector.start((audioDevices, currentDevice) -> {
+            // As Audio Switch prioritises Earpiece over Speakerphone, we specify our own device prioritization order int his listener
 
-        audioDeviceSelector.start((audioDevices, audioDevice) -> {
+            AudioDevice bluetoothDevice = null;
+            AudioDevice wiredDevice = null;
+            AudioDevice speakerPhone = null;
+
+            // Loop through all available audio devices and find the last connected bluetooth, wired and speakerphone device
+            for (AudioDevice device : audioDevices) {
+                if (device instanceof AudioDevice.BluetoothHeadset) {
+                    bluetoothDevice = device;
+                } else if (device instanceof AudioDevice.WiredHeadset) {
+                    wiredDevice = device;
+                } else if (device instanceof AudioDevice.Speakerphone) {
+                    speakerPhone = device;
+                }
+            }
+
+            // Select devices based on our order of prioritisation
+            // This means Bluetooth -> Wired Headset -> Speakerphone
+            if (bluetoothDevice != null && !(currentDevice instanceof AudioDevice.BluetoothHeadset)) {
+                audioDeviceSelector.selectDevice(bluetoothDevice);
+            } else if (bluetoothDevice == null && wiredDevice != null && !(currentDevice instanceof AudioDevice.WiredHeadset)) {
+                audioDeviceSelector.selectDevice(wiredDevice);
+            } else if (bluetoothDevice == null && wiredDevice == null && speakerPhone != null && !(currentDevice instanceof AudioDevice.Speakerphone)){
+                audioDeviceSelector.selectDevice(speakerPhone);
+            }
+
             return Unit.INSTANCE;
         });
 
