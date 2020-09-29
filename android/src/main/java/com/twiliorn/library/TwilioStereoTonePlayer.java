@@ -5,6 +5,7 @@ import android.media.AudioManager;
 import android.media.SoundPool;
 import android.util.Log;
 
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -14,7 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implements SoundPool.OnLoadCompleteListener {
+public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implements SoundPool.OnLoadCompleteListener, LifecycleEventListener {
 
     private static final String TAG = "TwilioStereoTonePlayer";
 
@@ -60,6 +61,8 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
         this.soundPool = new SoundPool(
                 maxLoadableFiles, AudioManager.STREAM_MUSIC, 0);
         this.soundPool.setOnLoadCompleteListener(this);
+
+        getReactApplicationContext().addLifecycleEventListener(this);
     }
 
     @ReactMethod
@@ -236,6 +239,22 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
             this.soundPool.release();
             this.soundPool = null;
         }
+    }
+
+    /////////// Lifecycle Events    ////////////
+    @Override
+    public void onHostResume() {
+        this.soundPool.autoResume();
+    }
+
+    @Override
+    public void onHostPause() {
+        this.soundPool.autoPause();
+    }
+
+    @Override
+    public void onHostDestroy() {
+
     }
 
     /////////// Private Methods     ////////////
