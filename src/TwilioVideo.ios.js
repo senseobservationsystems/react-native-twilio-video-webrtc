@@ -157,9 +157,11 @@ export default class extends Component {
     this.disconnect = this.disconnect.bind(this)
     this.sendString = this.sendString.bind(this)
     this.setRemoteAudioPlayback = this.setRemoteAudioPlayback.bind(this)
+    this.unpublishLocalAudio = this.unpublishLocalAudio.bind(this)
+    this.unpublishLocalVideo = this.unpublishLocalVideo.bind(this)
 
-    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
-    this.usesCustomAudioDevice = true;
+    this.publishLocalAudio = this.publishLocalAudio.bind(this)
+    this.publishLocalVideo = this.publishLocalVideo.bind(this)
   }
 
   componentWillMount () {
@@ -238,9 +240,8 @@ export default class extends Component {
    * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {String} encodingParameters Control Encoding config
    */
-  connect ({ roomName, accessToken, enableVideo, encodingParameters }) {
-    this._startLocalVideo(enableVideo)
-    TWVideoModule.connect(accessToken, roomName, encodingParameters)
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters }) {
+    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters)
   }
 
   /**
@@ -248,6 +249,34 @@ export default class extends Component {
    */
   disconnect () {
     TWVideoModule.disconnect()
+  }
+
+  /**
+   * Publish a local audio track
+   */
+  publishLocalAudio () {
+    TWVideoModule.publishLocalAudio()
+  }
+
+  /**
+   * Publish a local video track
+   */
+  publishLocalVideo () {
+    TWVideoModule.publishLocalVideo()
+  }
+
+  /**
+   * Unpublish a local audio track
+   */
+  unpublishLocalAudio () {
+    TWVideoModule.unpublishLocalAudio()
+  }
+
+  /**
+   * Unpublish a local video track
+   */
+  unpublishLocalVideo () {
+    TWVideoModule.unpublishLocalVideo()
   }
 
   /**
