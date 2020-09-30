@@ -69,6 +69,8 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
 
+@property (strong, nonatomic) RCTTWCustomAudioDevice* audioDevice;
+
 @end
 
 @implementation RCTTWVideoModule
@@ -160,14 +162,19 @@ RCT_EXPORT_METHOD(setRemoteAudioPlayback:(NSString *)participantSid enabled:(BOO
     }
 }
 
-RCT_EXPORT_METHOD(startLocalVideo) {
-  TVICameraSourceOptions *options = [TVICameraSourceOptions optionsWithBlock:^(TVICameraSourceOptionsBuilder * _Nonnull builder) {
+RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
+    if (!enabled || self.localVideoTrack != nil) {
+        return;
+    }
 
+  TVICameraSourceOptions *options = [TVICameraSourceOptions optionsWithBlock:^(TVICameraSourceOptionsBuilder * _Nonnull builder) {
   }];
+
   self.camera = [[TVICameraSource alloc] initWithOptions:options delegate:self];
   if (self.camera == nil) {
       return;
   }
+
   self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.camera enabled:YES name:@"camera"];
   AVCaptureDevice *camera = [TVICameraSource captureDeviceForPosition:AVCaptureDevicePositionFront];
   [self.camera startCaptureWithDevice:camera completion:^(AVCaptureDevice *device,
@@ -180,9 +187,25 @@ RCT_EXPORT_METHOD(startLocalVideo) {
           [self sendEventCheckingListenerWithName:cameraDidStart body:nil];
       }
   }];
+
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  if (localParticipant != nil && self.localVideoTrack != nil) {
+      [localParticipant publishVideoTrack:self.localVideoTrack];
+  }
 }
 
-RCT_EXPORT_METHOD(startLocalAudio) {
+RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+    
+    // If this is enabled we use our custom Twilio Audio Device for audio rendering
+    if (useCustomAudioDevice) {
+        if (_audioDevice == nil) {
+            _audioDevice = [[RCTTWCustomAudioDevice alloc] init];
+            
+            TwilioVideoSDK.audioDevice = _audioDevice;
+            TwilioStereoTonePlayer.audioDevice = _audioDevice;
+        }
+    }
+    
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil enabled:YES name:@"microphone"];
 }
 
@@ -193,6 +216,12 @@ RCT_EXPORT_METHOD(stopLocalVideo) {
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
   self.localAudioTrack = nil;
+  self.audioDevice = nil;
+  TwilioStereoTonePlayer.audioDevice = nil;
+  
+  // Make sure the Data Track is cleaned up
+  self.localDataTrack = nil;
+  self.room = nil;
 }
 
 RCT_EXPORT_METHOD(publishLocalVideo) {
@@ -242,6 +271,16 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
   if(self.localVideoTrack != nil){
     [self.localParticipant publishVideoTrack:self.localVideoTrack];
   }
+}
+
+RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
+    rejecter:(RCTPromiseRejectBlock)reject) {
+    
+    if (_audioDevice != NULL) {
+        [_audioDevice makeStereo:enabled];
+    }
+    
+  resolve(@(enabled));
 }
 
 
@@ -491,6 +530,7 @@ RCT_EXPORT_METHOD(disconnect) {
 }
 
 - (void)room:(TVIRoom *)room didDisconnectWithError:(nullable NSError *)error {
+  self.localDataTrack = nil;
   self.room = nil;
 
   NSMutableDictionary *body = [@{ @"roomName": room.name, @"roomSid": room.sid } mutableCopy];
@@ -502,6 +542,7 @@ RCT_EXPORT_METHOD(disconnect) {
 }
 
 - (void)room:(TVIRoom *)room didFailToConnectWithError:(nonnull NSError *)error{
+  self.localDataTrack = nil;
   self.room = nil;
 
   NSMutableDictionary *body = [@{ @"roomName": room.name, @"roomSid": room.sid } mutableCopy];

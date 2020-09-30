@@ -151,6 +151,7 @@ export default class extends Component {
 
     this.setLocalVideoEnabled = this.setLocalVideoEnabled.bind(this)
     this.setLocalAudioEnabled = this.setLocalAudioEnabled.bind(this)
+    this.setStereoEnabled = this.setStereoEnabled.bind(this)
     this.flipCamera = this.flipCamera.bind(this)
     this.connect = this.connect.bind(this)
     this.disconnect = this.disconnect.bind(this)
@@ -161,6 +162,9 @@ export default class extends Component {
 
     this.publishLocalAudio = this.publishLocalAudio.bind(this)
     this.publishLocalVideo = this.publishLocalVideo.bind(this)
+
+    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
+    this.usesCustomAudioDevice = true;
   }
 
   componentWillMount () {
@@ -193,6 +197,7 @@ export default class extends Component {
    * Enable or disable local video
    */
   setLocalVideoEnabled (enabled) {
+    this._startLocalVideo(enabled)
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -204,7 +209,14 @@ export default class extends Component {
   }
 
   /**
-   * Filp between the front and back camera
+   * Enable or disable stereo mode
+   */
+  setStereoEnabled (enabled) {
+    return TWVideoModule.setStereoEnabled(enabled)
+  }
+
+  /**
+   * Flip between the front and back camera
    */
   flipCamera () {
     TWVideoModule.flipCamera()
@@ -228,6 +240,7 @@ export default class extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
+   * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {String} encodingParameters Control Encoding config
    */
   connect ({ roomName, accessToken, enableVideo = true, encodingParameters }) {
@@ -277,8 +290,9 @@ export default class extends Component {
     TWVideoModule.sendString(message)
   }
 
-  _startLocalVideo () {
-    TWVideoModule.startLocalVideo()
+  _startLocalVideo (enabled) {
+    const screenShare = this.props.screenShare || false
+    TWVideoModule.startLocalVideo(enabled)
   }
 
   _stopLocalVideo () {
@@ -286,7 +300,7 @@ export default class extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio()
+    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
   }
 
   _stopLocalAudio () {
