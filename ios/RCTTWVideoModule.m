@@ -265,7 +265,7 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
 }
 
 -(void)createLocalVideoTrack {
-  [self startLocalVideo];
+  [self startLocalVideo:true];
   // Publish video so other Room Participants can subscribe
   // This check is required when TVICameraSource return nil Eg: simulator
   if(self.localVideoTrack != nil){
@@ -417,7 +417,7 @@ RCT_EXPORT_METHOD(getStats) {
     if(enableVideo){
       if (self.localVideoTrack == nil) {
           // We disabled video in a previous call, attempt to re-enable
-          [self startLocalVideo];
+          [self startLocalVideo:true];
       } else {
           [self.localVideoTrack setEnabled:true];
       }
