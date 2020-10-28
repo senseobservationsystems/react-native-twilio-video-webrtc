@@ -12,7 +12,7 @@ People using a version < 1.0.1 please move to 1.0.1 since the project changed a 
 
 ### Where is this forked repo used?
 
-In the NiceDay app project: https://github.com/senseobservationsystems/goalie-2-mobile-app/
+In the NiceDay app.
 
 ### Why do we have this repo forked?
 
