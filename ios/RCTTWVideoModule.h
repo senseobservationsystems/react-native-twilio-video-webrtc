@@ -11,6 +11,9 @@
 
 #import <TwilioVideo/TwilioVideo.h>
 
+#import "RCTTWCustomAudioDevice.h"
+#import "TwilioStereoTonePlayer.h"
+
 @interface RCTTWVideoModule : RCTEventEmitter <RCTBridgeModule>
 
 - (void)addLocalView:(TVIVideoView *)view;

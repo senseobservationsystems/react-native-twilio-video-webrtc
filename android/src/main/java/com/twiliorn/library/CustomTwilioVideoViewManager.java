@@ -14,7 +14,6 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
-import com.facebook.react.uimanager.annotations.ReactProp;
 
 import java.util.Map;
 
@@ -39,7 +38,6 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_E
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_DISABLED_AUDIO_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_STATS_RECEIVED;
 
-
 public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilioVideoView> {
     public static final String REACT_CLASS = "RNCustomTwilioVideoView";
 
@@ -55,6 +53,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int RELEASE_RESOURCE = 10;
     private static final int TOGGLE_BLUETOOTH_HEADSET = 11;
     private static final int SEND_STRING = 12;
+    private static final int TOGGLE_STEREO = 13;
 
     @Override
     public String getName() {
@@ -115,6 +114,10 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
             case SEND_STRING:
                 view.sendString(args.getString(0));
                 break;
+            case TOGGLE_STEREO:
+                Boolean stereoEnabled = args.getBoolean(0);
+                view.toggleStereo(stereoEnabled);
+                break;
         }
     }
 
@@ -170,6 +173,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
                 .put("sendString", SEND_STRING)
+                .put("setStereo", TOGGLE_STEREO)
                 .build();
     }
 }

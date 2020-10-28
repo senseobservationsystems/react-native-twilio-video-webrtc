@@ -151,11 +151,15 @@ export default class extends Component {
 
     this.setLocalVideoEnabled = this.setLocalVideoEnabled.bind(this)
     this.setLocalAudioEnabled = this.setLocalAudioEnabled.bind(this)
+    this.setStereoEnabled = this.setStereoEnabled.bind(this)
     this.flipCamera = this.flipCamera.bind(this)
     this.connect = this.connect.bind(this)
     this.disconnect = this.disconnect.bind(this)
     this.sendString = this.sendString.bind(this)
     this.setRemoteAudioPlayback = this.setRemoteAudioPlayback.bind(this)
+
+    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
+    this.usesCustomAudioDevice = true;
   }
 
   componentWillMount () {
@@ -200,7 +204,14 @@ export default class extends Component {
   }
 
   /**
-   * Filp between the front and back camera
+   * Enable or disable stereo mode
+   */
+  setStereoEnabled (enabled) {
+    return TWVideoModule.setStereoEnabled(enabled)
+  }
+
+  /**
+   * Flip between the front and back camera
    */
   flipCamera () {
     TWVideoModule.flipCamera()
@@ -257,7 +268,7 @@ export default class extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio()
+    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
   }
 
   _stopLocalAudio () {
