@@ -118,7 +118,9 @@ export default class Example extends Component {
     isStereoMode: false,
     isPlaying: false,
     playbackSpeed: 1.0,
+    connectAttempt: 1,
     status: 'disconnected',
+    mountStatus: 'unmounted',
     participants: new Map(),
     videoTracks: new Map(),
     token: '',
@@ -126,6 +128,11 @@ export default class Example extends Component {
   }
   
   _onConnectButtonPress = async () => {
+    if (this.state.mountStatus == 'unmounted') {
+      this.setState({mountStatus: 'mounted'})
+      return;
+    }
+
     if (Platform.OS === 'android') {
       await this._requestAudioPermission()
       await this._requestCameraPermission()
@@ -135,10 +142,7 @@ export default class Example extends Component {
     }
 
     this.audioPlayer = new TwilioStereoTonePlayer();
-    this.audioPlayer.preload("stereo_tone.wav")
-    this.audioPlayer.preload("stereo_tone_2.wav")
-    
-    this.setState({status: 'connecting'})
+    this.setState({status: 'connecting', connectAttempt: this.state.connectAttempt+1})
   }
 
   _onEndButtonPress = () => {
@@ -156,7 +160,6 @@ export default class Example extends Component {
   }
 
   _onStereoButtonPress = () => {
-    // console.log("Switching Stereo Mode")
     this.refs.twilioVideo.setStereoEnabled(!this.state.isStereoMode)
       .then(isEnabled => this.setState({isStereoMode: isEnabled}))
 
@@ -166,8 +169,7 @@ export default class Example extends Component {
 
   _onPlayTrackButtonPress = () => {
     if (!this.state.isPlaying) {
-      // this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
-      this.audioPlayer.play("stereo_tone.wav", true, 1.0, 1.0);
+      this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
       this.setState({isPlaying: true})
     } else {
       this.audioPlayer.pause();
@@ -177,27 +179,25 @@ export default class Example extends Component {
   }
 
   _onChangePlaybackSpeedPress = () => {
-    // this.audioPlayer.play("stereo_tone.wav", true, 0.5, 1.0);
     if (this.state.playbackSpeed < 2.0) {
       this.setState({playbackSpeed: 2.0})
     } else {
       this.setState({playbackSpeed: 1.0})
     }
 
-    // this.audioPlayer.setVolume(this.state.playbackSpeed/2.0);
     this.audioPlayer.setPlaybackSpeed(this.state.playbackSpeed);
   }
 
   _onRoomDidConnect = () => {
     this.setState({status: 'connected'})
-
-    // this.refs.twilioVideo.setStereoMode(true);
   }
 
   _onRoomDidDisconnect = ({error}) => {
     console.log("ERROR: ", error)
 
     this.setState({status: 'disconnected'})
+
+    this.setState({mountStatus: 'unmounted'})
   }
 
   _onRoomDidFailToConnect = (error) => {
@@ -264,11 +264,11 @@ export default class Example extends Component {
             <TextInput
               style={styles.input}
               autoCapitalize='none'
-              value={this.state.token}
+              value={Platform.OS === 'android' ? this.state.token : this.state.iosToken}
               onChangeText={(text) => this.setState({token: text})}>
             </TextInput>
             <Button
-              title="Connect"
+              title={this.state.mountStatus != "mounted" ? "Mount Component" : "Connect"}
               style={styles.button}
               onPress={this._onConnectButtonPress}>
             </Button>
@@ -337,14 +337,17 @@ export default class Example extends Component {
           </View>
         }
 
-        <TwilioVideo
-          ref="twilioVideo"
-          onRoomDidConnect={ this._onRoomDidConnect }
-          onRoomDidDisconnect={ this._onRoomDidDisconnect }
-          onRoomDidFailToConnect= { this._onRoomDidFailToConnect }
-          onParticipantAddedVideoTrack={ this._onParticipantAddedVideoTrack }
-          onParticipantRemovedVideoTrack= { this._onParticipantRemovedVideoTrack }
-        />
+        {
+          this.state.mountStatus === 'mounted' &&
+          <TwilioVideo
+            ref="twilioVideo"
+            onRoomDidConnect={ this._onRoomDidConnect }
+            onRoomDidDisconnect={ this._onRoomDidDisconnect }
+            onRoomDidFailToConnect= { this._onRoomDidFailToConnect }
+            onParticipantAddedVideoTrack={ this._onParticipantAddedVideoTrack }
+            onParticipantRemovedVideoTrack= { this._onParticipantRemovedVideoTrack }
+          />
+        }
       </View>
     );
   }
