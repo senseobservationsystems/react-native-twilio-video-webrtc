@@ -230,7 +230,7 @@ export default class extends Component {
    * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {String} encodingParameters Control Encoding config
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters }) {
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null }) {
     TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters)
   }
 
