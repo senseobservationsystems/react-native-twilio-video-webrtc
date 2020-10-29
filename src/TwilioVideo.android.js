@@ -151,7 +151,8 @@ const nativeEvents = {
   toggleBluetoothHeadset: 11,
   sendString: 12,
   publishVideo: 13,
-  publishAudio: 14
+  publishAudio: 14,
+  toggleStereo: 15
 }
 
 class CustomTwilioVideoView extends Component {
