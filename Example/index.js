@@ -36,6 +36,7 @@ const Example = (props) => {
       await _requestCameraPermission();
     }
     twilioVideo.current.connect({ accessToken: token });
+    twilioVideo.current.connect({ accessToken: token, enableNetworkQualityReporting: true});
     setStatus("connecting");
   };
 
@@ -91,6 +92,11 @@ const Example = (props) => {
 
     setVideoTracks(videoTracks);
   };
+
+  const _onNetworkLevelChanged = ({ participant, isLocalUser, quality }) => {
+    console.log("Participant", participant, "isLocalUser", isLocalUser, "quality", quality);
+  };
+
 
   const _requestAudioPermission = () => {
     return PermissionsAndroid.request(
@@ -181,6 +187,7 @@ const Example = (props) => {
         onRoomDidFailToConnect={_onRoomDidFailToConnect}
         onParticipantAddedVideoTrack={_onParticipantAddedVideoTrack}
         onParticipantRemovedVideoTrack={_onParticipantRemovedVideoTrack}
+        onNetworkQualityLevelsChanged={_onNetworkLevelChanged}
       />
     </View>
   );
