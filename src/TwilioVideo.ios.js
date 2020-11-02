@@ -140,6 +140,11 @@ export default class extends Component {
      *
      */
     onStatsReceived: PropTypes.func,
+    /**
+     * Called when the network quality levels of a participant have changed (only if enableNetworkQualityReporting is set to True when connecting)
+     *
+     */
+    onNetworkQualityLevelsChanged: PropTypes.func,
     ...View.propTypes
   }
 
@@ -229,9 +234,10 @@ export default class extends Component {
    * @param  {String} accessToken The Twilio's JWT access token
    * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {String} encodingParameters Control Encoding config
+   * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null }) {
-    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters)
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false }) {
+    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting)
   }
 
   /**
@@ -406,6 +412,11 @@ export default class extends Component {
       this._eventEmitter.addListener('statsReceived', data => {
         if (this.props.onStatsReceived) {
           this.props.onStatsReceived(data)
+        }
+      }),
+      this._eventEmitter.addListener('networkQualityLevelsChanged', data => {
+        if (this.props.onNetworkQualityLevelsChanged) {
+          this.props.onNetworkQualityLevelsChanged(data)
         }
       })
     ]
