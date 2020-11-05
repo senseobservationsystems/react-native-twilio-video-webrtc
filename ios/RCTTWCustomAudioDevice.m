@@ -805,14 +805,26 @@ static OSStatus CustomAudioDeviceRecordCallback(void *refCon,
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetoothA2DP error:&error]) {
             NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
         }
+        
+        if (@available(iOS 14, *)) {
+            // We have to explcitiy do this for iOS 14,AVAudioSessionModeVideoChat is completely mono in iOS 14+
+            if (![session setMode:AVAudioSessionModeDefault error:&error]) {
+                NSLog(@"CustomAudioDevice [ERROR] setting session mode: %@", error);
+            }
+        } else {
+            // We have to explicitly do this for iOS < 14,AVAudioSessionModeDefault stays mono in iOS < 14
+            if (![session setMode:AVAudioSessionModeVideoChat error:&error]) {
+                NSLog(@"CustomAudioDevice [ERROR] setting session mode: %@", error);
+            }
+        }
     } else {
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetoothA2DP|AVAudioSessionCategoryOptionAllowBluetooth error:&error]) {
             NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
         }
-    }
-//
-    if (![session setMode:AVAudioSessionModeVideoChat error:&error]) {
-        NSLog(@"CustomAudioDevice [ERROR] setting session category: %@", error);
+        
+        if (![session setMode:AVAudioSessionModeVideoChat error:&error]) {
+            NSLog(@"CustomAudioDevice [ERROR] setting session mode: %@", error);
+        }
     }
     
     if (![session setPreferredSampleRate:kPreferredSampleRate error:&error]) {
