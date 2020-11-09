@@ -140,6 +140,11 @@ export default class extends Component {
      *
      */
     onStatsReceived: PropTypes.func,
+    /**
+     * Called when the network quality levels of a participant have changed (only if enableNetworkQualityReporting is set to True when connecting)
+     *
+     */
+    onNetworkQualityLevelsChanged: PropTypes.func,
     ...View.propTypes
   }
 
@@ -148,16 +153,8 @@ export default class extends Component {
 
     this._subscriptions = []
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
-
-    this.setLocalVideoEnabled = this.setLocalVideoEnabled.bind(this)
-    this.setLocalAudioEnabled = this.setLocalAudioEnabled.bind(this)
+    
     this.setStereoEnabled = this.setStereoEnabled.bind(this)
-    this.flipCamera = this.flipCamera.bind(this)
-    this.connect = this.connect.bind(this)
-    this.disconnect = this.disconnect.bind(this)
-    this.sendString = this.sendString.bind(this)
-    this.setRemoteAudioPlayback = this.setRemoteAudioPlayback.bind(this)
-
     // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
     this.usesCustomAudioDevice = true;
   }
@@ -237,10 +234,10 @@ export default class extends Component {
    * @param  {String} accessToken The Twilio's JWT access token
    * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {String} encodingParameters Control Encoding config
+   * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
    */
-  connect ({ roomName, accessToken, enableVideo, encodingParameters }) {
-    this._startLocalVideo(enableVideo)
-    TWVideoModule.connect(accessToken, roomName, encodingParameters)
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false }) {
+    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting)
   }
 
   /**
@@ -248,6 +245,34 @@ export default class extends Component {
    */
   disconnect () {
     TWVideoModule.disconnect()
+  }
+
+  /**
+   * Publish a local audio track
+   */
+  publishLocalAudio () {
+    TWVideoModule.publishLocalAudio()
+  }
+
+  /**
+   * Publish a local video track
+   */
+  publishLocalVideo () {
+    TWVideoModule.publishLocalVideo()
+  }
+
+  /**
+   * Unpublish a local audio track
+   */
+  unpublishLocalAudio () {
+    TWVideoModule.unpublishLocalAudio()
+  }
+
+  /**
+   * Unpublish a local video track
+   */
+  unpublishLocalVideo () {
+    TWVideoModule.unpublishLocalVideo()
   }
 
   /**
@@ -387,6 +412,11 @@ export default class extends Component {
       this._eventEmitter.addListener('statsReceived', data => {
         if (this.props.onStatsReceived) {
           this.props.onStatsReceived(data)
+        }
+      }),
+      this._eventEmitter.addListener('networkQualityLevelsChanged', data => {
+        if (this.props.onNetworkQualityLevelsChanged) {
+          this.props.onNetworkQualityLevelsChanged(data)
         }
       })
     ]
