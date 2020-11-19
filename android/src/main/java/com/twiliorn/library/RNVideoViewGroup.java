@@ -11,7 +11,9 @@ import android.graphics.Point;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.StringDef;
-
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.uimanager.UIManagerModule;
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -43,7 +45,10 @@ public class RNVideoViewGroup extends ViewGroup {
     }
 
     void pushEvent(View view, String name, WritableMap data) {
-        eventEmitter.receiveEvent(view.getId(), name, data);
+        ReactContext context= (ReactContext) view.getContext();
+        EventDispatcher eventDispatcher =
+                context.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        eventDispatcher.dispatchEvent(new TwilioEvent(view.getId(),name,data));
     }
 
     public RNVideoViewGroup(ThemedReactContext themedReactContext) {
