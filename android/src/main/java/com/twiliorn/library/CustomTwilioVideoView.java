@@ -30,11 +30,14 @@ import android.util.Log;
 import android.view.View;
 
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.UIManagerModule;	
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.twilio.video.AudioTrackPublication;
 import com.twilio.video.BaseTrackStats;
@@ -1174,7 +1177,10 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     // ===== EVENTS TO RN ==========================================================================
 
     void pushEvent(View view, String name, WritableMap data) {
-        eventEmitter.receiveEvent(view.getId(), name, data);
+        ReactContext context= (ReactContext) view.getContext();	
+        EventDispatcher eventDispatcher =	
+            context.getNativeModule(UIManagerModule.class).getEventDispatcher();	
+        eventDispatcher.dispatchEvent(new TwilioEvent(view.getId(),name,data));
     }
 
     public static void registerPrimaryVideoView(PatchedVideoView v, String trackSid) {
