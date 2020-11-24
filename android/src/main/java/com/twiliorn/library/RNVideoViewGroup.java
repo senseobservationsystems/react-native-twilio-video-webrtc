@@ -45,10 +45,7 @@ public class RNVideoViewGroup extends ViewGroup {
     }
 
     void pushEvent(View view, String name, WritableMap data) {
-        ReactContext context= (ReactContext) view.getContext();
-        EventDispatcher eventDispatcher =
-                context.getNativeModule(UIManagerModule.class).getEventDispatcher();
-        eventDispatcher.dispatchEvent(new TwilioEvent(view.getId(),name,data));
+        eventEmitter.receiveEvent(view.getId(), name, data);
     }
 
     public RNVideoViewGroup(ThemedReactContext themedReactContext) {
