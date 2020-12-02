@@ -151,23 +151,38 @@ export default class extends Component {
   constructor (props) {
     super(props)
 
+    this._onDebugEvent = props.onDebugEvent;
+    this._sendDebugEvent('constructor');
+
     this._subscriptions = []
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
-    
+
     this.setStereoEnabled = this.setStereoEnabled.bind(this)
     // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
     this.usesCustomAudioDevice = true;
+
   }
 
   componentWillMount () {
+    this._sendDebugEvent('componentWillMount');
     this._registerEvents()
     this._startLocalAudio()
   }
 
   componentWillUnmount () {
+    this._sendDebugEvent('componentWillUnmount');
     this._unregisterEvents()
     this._stopLocalVideo()
     this._stopLocalAudio()
+  }
+
+  /**
+   * Send a debug event
+   */
+  _sendDebugEvent (ev) {
+    if (this._onDebugEvent) {
+      this._onDebugEvent(ev);
+    }
   }
 
   /**
