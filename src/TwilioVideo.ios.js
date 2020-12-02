@@ -233,7 +233,7 @@ export default class extends Component {
    * Toggle audio setup from speaker (default) and headset
    */
   toggleSoundSetup (speaker) {
-    this._sendDebugEvent('toggleSoundSetup: ' + (speaker ? 'true' : 'false'))
+    this._sendDebugEvent('toggleSoundSetup')
     TWVideoModule.toggleSoundSetup(speaker)
   }
 

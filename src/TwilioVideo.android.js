@@ -160,6 +160,15 @@ const nativeEvents = {
 }
 
 class CustomTwilioVideoView extends Component {
+
+  constructor (props) {
+    super(props)
+
+    this._onDebugEvent = props.onDebugEvent
+    this._sendDebugEvent('constructor')
+
+  }
+
   connect ({
     roomName,
     accessToken,
@@ -168,6 +177,7 @@ class CustomTwilioVideoView extends Component {
     enableRemoteAudio = true,
     enableNetworkQualityReporting = false
   }) {
+    this._sendDebugEvent('connect')
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
       accessToken,
@@ -179,77 +189,98 @@ class CustomTwilioVideoView extends Component {
   }
 
   sendString (message) {
+    this._sendDebugEvent('sendString')
     this.runCommand(nativeEvents.sendString, [
       message
     ])
   }
 
   publishLocalAudio () {
+    this._sendDebugEvent('publishLocalAudio')
     this.runCommand(nativeEvents.publishAudio, [true])
   }
 
   publishLocalVideo () {
+    this._sendDebugEvent('publishLocalVideo')
     this.runCommand(nativeEvents.publishVideo, [true])
   }
 
   unpublishLocalAudio () {
+    this._sendDebugEvent('unpublishLocalAudio')
     this.runCommand(nativeEvents.publishAudio, [false])
   }
 
   unpublishLocalVideo () {
+    this._sendDebugEvent('unpublishLocalVideo')
     this.runCommand(nativeEvents.publishVideo, [false])
   }
 
   disconnect () {
+    this._sendDebugEvent('disconnect')
     this.runCommand(nativeEvents.disconnect, [])
   }
 
+  componentWillMount () {
+    this._sendDebugEvent('componentWillMount')
+  }
+
   componentWillUnmount () {
+    this._sendDebugEvent('componentWillUnmount')
     this.runCommand(nativeEvents.releaseResource, [])
   }
 
   flipCamera () {
+    this._sendDebugEvent('flipCamera')
     this.runCommand(nativeEvents.switchCamera, [])
   }
 
   setLocalVideoEnabled (enabled) {
+    this._sendDebugEvent('setLocalVideoEnabled: ' + (enabled ? 'true' : 'false'))
     this.runCommand(nativeEvents.toggleVideo, [enabled])
     return Promise.resolve(enabled)
   }
 
   setLocalAudioEnabled (enabled) {
+    this._sendDebugEvent('setLocalAudioEnabled: ' + (enabled ? 'true' : 'false'))
     this.runCommand(nativeEvents.toggleSound, [enabled])
     return Promise.resolve(enabled)
   }
 
   setRemoteAudioEnabled (enabled) {
+    this._sendDebugEvent('setRemoteAudioEnabled: ' + (enabled ? 'true' : 'false'))
     this.runCommand(nativeEvents.toggleRemoteSound, [enabled])
     return Promise.resolve(enabled)
   }
 
   setBluetoothHeadsetConnected (enabled) {
+    this._sendDebugEvent('setBluetoothHeadsetConnected: ' + (enabled ? 'true' : 'false'))
     this.runCommand(nativeEvents.toggleBluetoothHeadset, [enabled])
     return Promise.resolve(enabled)
   }
 
   setStereoEnabled (enabled) {
+    this._sendDebugEvent('setStereoEnabled: ' + (enabled ? 'true' : 'false'))
     this.runCommand(nativeEvents.toggleStereo, [enabled])
     return Promise.resolve(enabled)
   }
 
   getStats () {
+    this._sendDebugEvent('getStats')
     this.runCommand(nativeEvents.getStats, [])
   }
 
   disableOpenSLES () {
+    this._sendDebugEvent('disableOpenSLES')
     this.runCommand(nativeEvents.disableOpenSLES, [])
   }
 
   toggleSoundSetup (speaker) {
+    this._sendDebugEvent('toggleSoundSetup')
     this.runCommand(nativeEvents.toggleSoundSetup, [speaker])
   }
 
   runCommand (event, args) {
+    this._sendDebugEvent('runCommand')
     switch (Platform.OS) {
       case 'android':
         UIManager.dispatchViewManagerCommand(
@@ -264,6 +295,7 @@ class CustomTwilioVideoView extends Component {
   }
 
   buildNativeEventWrappers () {
+    this._sendDebugEvent('buildNativeEventWrappers')
     return [
       'onCameraSwitched',
       'onVideoChanged',
@@ -297,7 +329,17 @@ class CustomTwilioVideoView extends Component {
     }, {})
   }
 
+  /**
+   * Send a debug event
+   */
+  _sendDebugEvent (ev) {
+    if (this._onDebugEvent) {
+      this._onDebugEvent(ev)
+    }
+  }
+
   render () {
+    this._sendDebugEvent('render')
     return (
       <NativeCustomTwilioVideoView
         ref='videoView'
