@@ -244,12 +244,16 @@ public class TwilioStereoTonePlayer extends ReactContextBaseJavaModule implement
     /////////// Lifecycle Events    ////////////
     @Override
     public void onHostResume() {
-        this.soundPool.autoResume();
+        if (this.soundPool != null) {
+            this.soundPool.autoResume();
+        }
     }
 
     @Override
     public void onHostPause() {
-        this.soundPool.autoPause();
+        if (this.soundPool != null) {
+            this.soundPool.autoPause();
+        }
     }
 
     @Override
