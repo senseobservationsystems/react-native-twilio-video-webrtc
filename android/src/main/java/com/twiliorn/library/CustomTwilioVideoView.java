@@ -1070,7 +1070,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_VIDEO_TRACK, event);
     }
     // ===== EVENTS TO RN ==========================================================================
-
+    /**
+     * Dispatch custom event (`TwilioEvent`) to avoid error 
+     * `Caused by: java.lang.RuntimeException: Cannot convert argument of type class com.twiliorn.library.CustomTwilioVideoView`
+     * github.com/senseobservationsystems/goalie-2-mobile-app/issues/3416
+     */
     void pushEvent(View view, String name, WritableMap data) {
         ReactContext context= (ReactContext) view.getContext();
         EventDispatcher eventDispatcher =
