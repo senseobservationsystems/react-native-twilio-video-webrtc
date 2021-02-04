@@ -160,7 +160,8 @@ const nativeEvents = {
   toggleBluetoothHeadset: 11,
   sendString: 12,
   publishVideo: 13,
-  publishAudio: 14
+  publishAudio: 14,
+  toggleStereo: 15
 }
 
 class CustomTwilioVideoView extends Component {
@@ -235,6 +236,11 @@ class CustomTwilioVideoView extends Component {
 
   setBluetoothHeadsetConnected (enabled) {
     this.runCommand(nativeEvents.toggleBluetoothHeadset, [enabled])
+    return Promise.resolve(enabled)
+  }
+
+  setStereoEnabled (enabled) {
+    this.runCommand(nativeEvents.toggleStereo, [enabled])
     return Promise.resolve(enabled)
   }
 

@@ -71,6 +71,8 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
 
+@property (strong, nonatomic) RCTTWCustomAudioDevice* audioDevice;
+
 @end
 
 @implementation RCTTWVideoModule
@@ -164,10 +166,14 @@ RCT_EXPORT_METHOD(setRemoteAudioPlayback:(NSString *)participantSid enabled:(BOO
     }
 }
 
-RCT_EXPORT_METHOD(startLocalVideo) {
-  TVICameraSourceOptions *options = [TVICameraSourceOptions optionsWithBlock:^(TVICameraSourceOptionsBuilder * _Nonnull builder) {
+RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
+    if (!enabled || self.localVideoTrack != nil) {
+        return;
+    }
 
+  TVICameraSourceOptions *options = [TVICameraSourceOptions optionsWithBlock:^(TVICameraSourceOptionsBuilder * _Nonnull builder) {
   }];
+
   self.camera = [[TVICameraSource alloc] initWithOptions:options delegate:self];
   if (self.camera == nil) {
       return;
@@ -179,6 +185,8 @@ RCT_EXPORT_METHOD(startLocalVideo) {
   if (self.camera == nil) {
     return;
   }
+
+  self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.camera enabled:YES name:@"camera"];
   AVCaptureDevice *camera = [TVICameraSource captureDeviceForPosition:AVCaptureDevicePositionFront];
   [self.camera startCaptureWithDevice:camera completion:^(AVCaptureDevice *device,
           TVIVideoFormat *startFormat,
@@ -190,9 +198,25 @@ RCT_EXPORT_METHOD(startLocalVideo) {
           [self sendEventCheckingListenerWithName:cameraDidStart body:nil];
       }
   }];
+
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  if (localParticipant != nil && self.localVideoTrack != nil) {
+      [localParticipant publishVideoTrack:self.localVideoTrack];
+  }
 }
 
-RCT_EXPORT_METHOD(startLocalAudio) {
+RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+    
+    // If this is enabled we use our custom Twilio Audio Device for audio rendering
+    if (useCustomAudioDevice) {
+        if (_audioDevice == nil) {
+            _audioDevice = [[RCTTWCustomAudioDevice alloc] init];
+            
+            TwilioVideoSDK.audioDevice = _audioDevice;
+            TwilioStereoTonePlayer.audioDevice = _audioDevice;
+        }
+    }
+    
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil enabled:YES name:@"microphone"];
 }
 
@@ -202,6 +226,12 @@ RCT_EXPORT_METHOD(stopLocalVideo) {
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
   self.localAudioTrack = nil;
+  self.audioDevice = nil;
+  TwilioStereoTonePlayer.audioDevice = nil;
+  
+  // Make sure the Data Track is cleaned up
+  self.localDataTrack = nil;
+  self.room = nil;
 }
 
 RCT_EXPORT_METHOD(publishLocalVideo) {
@@ -255,6 +285,26 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
   bool result = [self _setLocalVideoEnabled:enabled];
   resolve(@(result));
 }
+
+-(void)createLocalVideoTrack {
+  [self startLocalVideo:true];
+  // Publish video so other Room Participants can subscribe
+  // This check is required when TVICameraSource return nil Eg: simulator
+  if(self.localVideoTrack != nil){
+    [self.localParticipant publishVideoTrack:self.localVideoTrack];
+  }
+}
+
+RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
+    rejecter:(RCTPromiseRejectBlock)reject) {
+    
+    if (_audioDevice != NULL) {
+        [_audioDevice makeStereo:enabled];
+    }
+    
+  resolve(@(enabled));
+}
+
 
 RCT_EXPORT_METHOD(flipCamera) {
     if (self.camera) {
@@ -386,6 +436,7 @@ RCT_EXPORT_METHOD(getStats) {
 }
 
 RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled) {
+  
   [self _setLocalVideoEnabled:enableVideo];
 
   TVIConnectOptions *connectOptions = [TVIConnectOptions optionsWithToken:accessToken block:^(TVIConnectOptionsBuilder * _Nonnull builder) {

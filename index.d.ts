@@ -2,30 +2,30 @@ declare module "react-native-twilio-video-webrtc" {
   import { ViewProps } from "react-native";
   import React from "react";
 
+  interface TwilioVideoLocalViewProps extends ViewProps {
+    enabled: boolean;
+    scalesType: number;
+    onTop?: boolean;
+    ref?: React.Ref<any>;
+  }
+  
   export interface TrackIdentifier {
     participantSid: string;
     videoTrackSid: string;
   }
 
-  type scaleType = "fit" | "fill";
   interface TwilioVideoParticipantViewProps extends ViewProps {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
-    scaleType?: scaleType;
+    scalesType?: number;
   }
 
-  interface TwilioVideoLocalViewProps extends ViewProps {
-    enabled: boolean;
-    ref?: React.Ref<any>;
-    scaleType?: scaleType;
-  }
-
-  interface Participant {
+  export interface Participant {
     sid: string;
     identity: string;
   }
 
-  interface Track {
+  export interface Track {
     enabled: boolean;
     trackName: string;
     trackSid: string;
