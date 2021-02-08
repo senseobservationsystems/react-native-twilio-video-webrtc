@@ -33,6 +33,7 @@ static NSString* cameraWasInterrupted         = @"cameraWasInterrupted";
 static NSString* cameraInterruptionEnded      = @"cameraInterruptionEnded";
 static NSString* cameraDidStopRunning         = @"cameraDidStopRunning";
 static NSString* statsReceived                = @"statsReceived";
+static NSString* networkQualityLevelsChanged  = @"networkQualityLevelsChanged";
 
 static const CMVideoDimensions kRCTTWVideoAppCameraSourceDimensions = (CMVideoDimensions){900, 720};
 
@@ -59,12 +60,13 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 }
 
 
-@interface RCTTWVideoModule () <TVIRemoteDataTrackDelegate, TVIRemoteParticipantDelegate, TVIRoomDelegate, TVICameraSourceDelegate>
+@interface RCTTWVideoModule () <TVIRemoteDataTrackDelegate, TVIRemoteParticipantDelegate, TVIRoomDelegate, TVICameraSourceDelegate, TVILocalParticipantDelegate>
 
 @property (strong, nonatomic) TVICameraSource *camera;
 @property (strong, nonatomic) TVILocalVideoTrack* localVideoTrack;
 @property (strong, nonatomic) TVILocalAudioTrack* localAudioTrack;
 @property (strong, nonatomic) TVILocalDataTrack* localDataTrack;
+@property (strong, nonatomic) TVILocalParticipant* localParticipant;
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
 
@@ -79,11 +81,7 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 RCT_EXPORT_MODULE();
 
 - (void)dealloc {
-  // We are done with camera
-  if (self.camera) {
-      [self.camera stopCapture];
-      self.camera = nil;
-  }
+  [self clearCameraInstance];
 }
 
 - (dispatch_queue_t)methodQueue {
@@ -112,7 +110,8 @@ RCT_EXPORT_MODULE();
     cameraDidStart,
     cameraWasInterrupted,
     cameraInterruptionEnded,
-    statsReceived
+    statsReceived,
+    networkQualityLevelsChanged
   ];
 }
 
@@ -223,6 +222,30 @@ RCT_EXPORT_METHOD(stopLocalAudio) {
   self.room = nil;
 }
 
+RCT_EXPORT_METHOD(publishLocalVideo) {
+  if(self.localVideoTrack != nil){
+    TVILocalParticipant *localParticipant = self.room.localParticipant;
+    [localParticipant publishVideoTrack:self.localVideoTrack];
+  }
+}
+
+RCT_EXPORT_METHOD(publishLocalAudio) {
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  [localParticipant publishAudioTrack:self.localAudioTrack];
+}
+
+RCT_EXPORT_METHOD(unpublishLocalVideo) {
+  if(self.localVideoTrack != nil){
+    TVILocalParticipant *localParticipant = self.room.localParticipant;
+    [localParticipant unpublishVideoTrack:self.localVideoTrack];
+  }
+}
+
+RCT_EXPORT_METHOD(unpublishLocalAudio) {
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  [localParticipant unpublishAudioTrack:self.localAudioTrack];
+}
+
 RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnabledWithResolver:(RCTPromiseResolveBlock)resolve
     rejecter:(RCTPromiseRejectBlock)reject) {
   [self.localAudioTrack setEnabled:enabled];
@@ -232,9 +255,23 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
 
 RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject) {
-  if (self.localVideoTrack != nil) {
-    [self.localVideoTrack setEnabled:enabled];
-    resolve(@(enabled));
+  if(self.localVideoTrack != nil){
+      [self.localVideoTrack setEnabled:enabled];
+      resolve(@(enabled));
+  } else if(enabled) {
+      [self createLocalVideoTrack];
+      resolve(@true);
+  } else {
+      resolve(@false);
+  }
+}
+
+-(void)createLocalVideoTrack {
+  [self startLocalVideo:true];
+  // Publish video so other Room Participants can subscribe
+  // This check is required when TVICameraSource return nil Eg: simulator
+  if(self.localVideoTrack != nil){
+    [self.localParticipant publishVideoTrack:self.localVideoTrack];
   }
 }
 
@@ -378,11 +415,22 @@ RCT_EXPORT_METHOD(getStats) {
   }
 }
 
-RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName encodingParameters:(NSDictionary *)encodingParameters) {
-  if (self.localVideoTrack == nil) {
-    // We disabled video in a previous call, attempt to re-enable
-    [self startLocalVideo:false];
-  }
+-(void)enableLocalVideoAtCreationTime:(BOOL *)enableVideo {
+    if(enableVideo){
+      if (self.localVideoTrack == nil) {
+          // We disabled video in a previous call, attempt to re-enable
+          [self startLocalVideo:true];
+      } else {
+          [self.localVideoTrack setEnabled:true];
+      }
+    } else {
+        [self stopLocalVideo];
+    }
+}
+
+RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting) {
+
+  [self enableLocalVideoAtCreationTime: enableVideo];
 
   TVIConnectOptions *connectOptions = [TVIConnectOptions optionsWithToken:accessToken block:^(TVIConnectOptionsBuilder * _Nonnull builder) {
     if (self.localVideoTrack) {
@@ -412,6 +460,11 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName 
       builder.encodingParameters = [[TVIEncodingParameters alloc] initWithAudioBitrate:(audioBitrate) ? audioBitrate : 40 videoBitrate:(videoBitrate) ? videoBitrate : 1500];
     }
       
+    if (enableNetworkQualityReporting) {
+      builder.networkQualityEnabled = true;
+      builder.networkQualityConfiguration = [ [TVINetworkQualityConfiguration alloc] initWithLocalVerbosity:TVINetworkQualityVerbosityMinimal remoteVerbosity:TVINetworkQualityVerbosityMinimal];
+    }
+  
   }];
 
   self.room = [TwilioVideoSDK connectWithOptions:connectOptions delegate:self];
@@ -424,7 +477,16 @@ RCT_EXPORT_METHOD(sendString:(nonnull NSString *)message) {
 }
 
 RCT_EXPORT_METHOD(disconnect) {
+  [self clearCameraInstance];
   [self.room disconnect];
+}
+
+- (void)clearCameraInstance {
+    // We are done with camera
+    if (self.camera) {
+        [self.camera stopCapture];
+        self.camera = nil;
+    }
 }
 
 # pragma mark - Common
@@ -477,9 +539,11 @@ RCT_EXPORT_METHOD(disconnect) {
     p.delegate = self;
     [participants addObject:[p toJSON]];
   }
-  TVILocalParticipant *localParticipant = room.localParticipant;
-  [participants addObject:[localParticipant toJSON]];
-    [self sendEventCheckingListenerWithName:roomDidConnect body:@{ @"roomName" : room.name , @"roomSid": room.sid, @"participants" : participants }];
+  self.localParticipant = room.localParticipant;
+  self.localParticipant.delegate = self;
+    
+  [participants addObject:[self.localParticipant toJSON]];
+  [self sendEventCheckingListenerWithName:roomDidConnect body:@{ @"roomName" : room.name , @"roomSid": room.sid, @"participants" : participants }];
 
 }
 
@@ -562,6 +626,10 @@ RCT_EXPORT_METHOD(disconnect) {
     [self sendEventCheckingListenerWithName:participantDisabledAudioTrack body:@{ @"participant": [participant toJSON], @"track": [publication toJSON] }];
 }
 
+- (void)remoteParticipant:(nonnull TVIRemoteParticipant *)participant networkQualityLevelDidChange:(TVINetworkQualityLevel)networkQualityLevel {
+    [self sendEventCheckingListenerWithName:networkQualityLevelsChanged body:@{ @"participant": [participant toJSON], @"isLocalUser": [NSNumber numberWithBool:false], @"quality": [NSNumber numberWithInt:(int)networkQualityLevel]}];
+}
+
 # pragma mark - TVIRemoteDataTrackDelegate
 
 - (void)remoteDataTrack:(nonnull TVIRemoteDataTrack *)remoteDataTrack didReceiveString:(nonnull NSString *)message {
@@ -573,8 +641,10 @@ RCT_EXPORT_METHOD(disconnect) {
     NSLog(@"DataTrack didReceiveData");
 }
 
+# pragma mark - TVILocalParticipantDelegate
 
-
-// TODO: Local participant delegates
+- (void)localParticipant:(nonnull TVILocalParticipant *)participant networkQualityLevelDidChange:(TVINetworkQualityLevel)networkQualityLevel {
+    [self sendEventCheckingListenerWithName:networkQualityLevelsChanged body:@{ @"participant": [participant toJSON], @"isLocalUser": [NSNumber numberWithBool:true], @"quality": [NSNumber numberWithInt:(int)networkQualityLevel]}];
+}
 
 @end

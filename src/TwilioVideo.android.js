@@ -134,7 +134,11 @@ const propTypes = {
   /**
    * Callback that is called when stats are received (after calling getStats)
    */
-  onStatsReceived: PropTypes.func
+  onStatsReceived: PropTypes.func,
+  /**
+   * Callback that is called when network quality levels are changed (only if enableNetworkQualityReporting in connect is set to true)
+   */
+  onNetworkQualityLevelsChanged: PropTypes.func
 }
 
 const nativeEvents = {
@@ -150,7 +154,9 @@ const nativeEvents = {
   releaseResource: 10,
   toggleBluetoothHeadset: 11,
   sendString: 12,
-  toggleStereo: 13
+  publishVideo: 13,
+  publishAudio: 14,
+  toggleStereo: 15
 }
 
 class CustomTwilioVideoView extends Component {
@@ -159,14 +165,16 @@ class CustomTwilioVideoView extends Component {
     accessToken,
     enableAudio = true,
     enableVideo = true,
-    enableRemoteAudio = true
+    enableRemoteAudio = true,
+    enableNetworkQualityReporting = false
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
       accessToken,
       enableAudio,
       enableVideo,
-      enableRemoteAudio
+      enableRemoteAudio,
+      enableNetworkQualityReporting
     ])
   }
 
@@ -174,6 +182,22 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.sendString, [
       message
     ])
+  }
+
+  publishLocalAudio () {
+    this.runCommand(nativeEvents.publishAudio, [true])
+  }
+
+  publishLocalVideo () {
+    this.runCommand(nativeEvents.publishVideo, [true])
+  }
+
+  unpublishLocalAudio () {
+    this.runCommand(nativeEvents.publishAudio, [false])
+  }
+
+  unpublishLocalVideo () {
+    this.runCommand(nativeEvents.publishVideo, [false])
   }
 
   disconnect () {
@@ -260,7 +284,8 @@ class CustomTwilioVideoView extends Component {
       'onParticipantDisabledVideoTrack',
       'onParticipantEnabledAudioTrack',
       'onParticipantDisabledAudioTrack',
-      'onStatsReceived'
+      'onStatsReceived',
+      'onNetworkQualityLevelsChanged'
     ].reduce((wrappedEvents, eventName) => {
       if (this.props[eventName]) {
         return {
