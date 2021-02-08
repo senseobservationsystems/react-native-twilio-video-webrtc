@@ -36,6 +36,7 @@ static NSString* cameraDidStopRunning         = @"cameraDidStopRunning";
 static NSString* statsReceived                = @"statsReceived";
 static NSString* networkQualityLevelsChanged  = @"networkQualityLevelsChanged";
 
+static RCTTWCustomAudioDevice* GLOBAL_AUDIO_DEVICE = nil;
 
 TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDevice *device, CMVideoDimensions targetSize, NSUInteger targetFps) {
     TVIVideoFormat *selectedFormat = nil;
@@ -71,7 +72,7 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
 
-@property (strong, nonatomic) RCTTWCustomAudioDevice* audioDevice;
+
 
 @end
 
@@ -179,13 +180,6 @@ RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
   if (self.camera == nil) {
       return;
   }
-  self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.camera enabled:NO name:@"camera"];
-}
-
-- (void)startCameraCapture {
-  if (self.camera == nil) {
-    return;
-  }
 
   self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.camera enabled:YES name:@"camera"];
   AVCaptureDevice *camera = [TVICameraSource captureDeviceForPosition:AVCaptureDevicePositionFront];
@@ -210,11 +204,11 @@ RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
     
     // If this is enabled we use our custom Twilio Audio Device for audio rendering
     if (useCustomAudioDevice) {
-        if (_audioDevice == nil) {
-            _audioDevice = [[RCTTWCustomAudioDevice alloc] init];
+        if (GLOBAL_AUDIO_DEVICE == nil) {
+            GLOBAL_AUDIO_DEVICE = [[RCTTWCustomAudioDevice alloc] init];
             
-            TwilioVideoSDK.audioDevice = _audioDevice;
-            TwilioStereoTonePlayer.audioDevice = _audioDevice;
+            TwilioVideoSDK.audioDevice = GLOBAL_AUDIO_DEVICE;
+            TwilioStereoTonePlayer.audioDevice = GLOBAL_AUDIO_DEVICE;
         }
     }
     
@@ -226,9 +220,10 @@ RCT_EXPORT_METHOD(stopLocalVideo) {
 }
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
+  // Note: We don't cleanup the global audio device as it stays attached with the instance of WebRTC internally that is never cleaned up
+  // This cleans up only when the app is quit
+  
   self.localAudioTrack = nil;
-  self.audioDevice = nil;
-  TwilioStereoTonePlayer.audioDevice = nil;
   
   // Make sure the Data Track is cleaned up
   self.localDataTrack = nil;
@@ -266,25 +261,17 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
   resolve(@(enabled));
 }
 
-- (bool)_setLocalVideoEnabled:(bool)enabled {
-  if (self.localVideoTrack != nil) {
-      [self.localVideoTrack setEnabled:enabled];
-      if (self.camera) {
-          if (enabled) {
-            [self startCameraCapture];
-          } else {
-            [self clearCameraInstance];
-          }
-          return enabled;
-      }
-  }
-  return false;
-}
-
 RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject) {
-  bool result = [self _setLocalVideoEnabled:enabled];
-  resolve(@(result));
+  if(self.localVideoTrack != nil){
+      [self.localVideoTrack setEnabled:enabled];
+      resolve(@(enabled));
+  } else if(enabled) {
+      [self createLocalVideoTrack];
+      resolve(@true);
+  } else {
+      resolve(@false);
+  }
 }
 
 -(void)createLocalVideoTrack {
@@ -299,8 +286,8 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
 RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
     rejecter:(RCTPromiseRejectBlock)reject) {
     
-    if (_audioDevice != NULL) {
-        [_audioDevice makeStereo:enabled];
+    if (GLOBAL_AUDIO_DEVICE != NULL) {
+        [GLOBAL_AUDIO_DEVICE makeStereo:enabled];
     }
     
   resolve(@(enabled));
@@ -449,9 +436,18 @@ RCT_EXPORT_METHOD(getStats) {
   }
 }
 
-RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled) {
-  
-  [self _setLocalVideoEnabled:enableVideo];
+-(void)enableLocalVideoAtCreationTime:(BOOL *)enableVideo {
+    if(enableVideo){
+      if (self.localVideoTrack == nil) {
+          // We disabled video in a previous call, attempt to re-enable
+          [self startLocalVideo:true];
+      } else {
+          [self.localVideoTrack setEnabled:true];
+      }
+    } else {
+        [self stopLocalVideo];
+    }
+}
 
 -(TVITrackPriority)parsePriorityString:(NSString *)priority {
     if (priority == nil) {
@@ -578,6 +574,7 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName 
 
 RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled bandwidthProfileOptions:(NSDictionary *)bandwidthProfileOptions) {
   
+  [self enableLocalVideoAtCreationTime: enableVideo];
   TVIVideoBandwidthProfileOptions* videoBandwidthProfile = [self prepareBandwidthProfile:bandwidthProfileOptions];
     
   TVIConnectOptions *connectOptions = [TVIConnectOptions optionsWithToken:accessToken block:^(TVIConnectOptionsBuilder * _Nonnull builder) {
