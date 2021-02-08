@@ -11,7 +11,6 @@ import PropTypes from 'prop-types'
 import { NativeModules, NativeEventEmitter, View } from 'react-native'
 
 const { TWVideoModule } = NativeModules
-
 export default class extends Component {
   static propTypes = {
     /**
@@ -166,7 +165,7 @@ export default class extends Component {
 
   componentWillMount () {
     this._registerEvents()
-    this._startLocalVideo()
+    this._startLocalVideo(false)
     this._startLocalAudio()
   }
 
@@ -192,9 +191,10 @@ export default class extends Component {
   }
 
   /**
-   * Enable or disable local video
+   * Enable or disable local video.
+   * NOTE: cameraSettings are ignored on iOS
    */
-  setLocalVideoEnabled (enabled) {
+  setLocalVideoEnabled (enabled, cameraSettings) {
     this._startLocalVideo(enabled)
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
@@ -211,6 +211,15 @@ export default class extends Component {
    */
   setStereoEnabled (enabled) {
     return TWVideoModule.setStereoEnabled(enabled)
+  }
+
+  /**
+   * Specifies the priority a remote participants video track should get
+   * @param {*} trackSid the SID of the track setting the priority for
+   * @param {*} trackPriority the priority of the track. Can be low, standard, high or null
+   */
+  setTrackPriority (trackSid, trackPriority) {
+    this.runCommand(nativeEvents.setTrackPriority, [trackSid, trackPriority])
   }
 
   /**
@@ -239,11 +248,13 @@ export default class extends Component {
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
    * @param  {boolean} enableVideo Don't start video unless it's necessary
-   * @param  {String} encodingParameters Control Encoding config
+   * @param  {object} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
+   * * @param  {Boolean} dominantSpeakerEnabled Report network quality of participants
+   * * @param  {object} bandwidthProfileOptions Report network quality of participants
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false, dominantSpeakerEnabled = false }) {
-    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting, dominantSpeakerEnabled)
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false, dominantSpeakerEnabled = false, bandwidthProfileOptions = null }) {
+    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting, dominantSpeakerEnabled, bandwidthProfileOptions);
   }
 
   /**
