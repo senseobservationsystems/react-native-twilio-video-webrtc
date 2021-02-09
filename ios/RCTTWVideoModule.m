@@ -216,7 +216,8 @@ RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
 }
 
 RCT_EXPORT_METHOD(stopLocalVideo) {
-    [self clearCameraInstance];
+  self.localVideoTrack = nil;
+  [self clearCameraInstance];
 }
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
@@ -649,6 +650,7 @@ RCT_EXPORT_METHOD(disconnect) {
     // We are done with camera
     if (self.camera) {
         [self.camera stopCapture];
+        self.camera = nil;
     }
 }
 
