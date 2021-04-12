@@ -52,8 +52,13 @@ public class TwilioVideoPreviewManager extends SimpleViewManager<TwilioVideoPrev
     @ReactProp(name = "onTop")
     public void setOnTop(TwilioVideoPreview view, @Nullable boolean onTop) {
         if (onTop) {
-            view.applyZOrder();
+            view.applyZOrder(true);
         }
+    }
+
+    @ReactProp(name = "applyZOrder", defaultBoolean = true)
+    public void setApplyZOrder(TwilioVideoPreview view, boolean applyZOrder) {
+      view.applyZOrder(applyZOrder);
     }
 
     @Override
