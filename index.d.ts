@@ -19,6 +19,7 @@ declare module "react-native-twilio-video-webrtc" {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
     scalesType?: number;
+    applyZOrder?: boolean;
   }
 
   export interface Participant {
