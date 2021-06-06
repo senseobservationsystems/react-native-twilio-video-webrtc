@@ -171,7 +171,7 @@ class CustomTwilioVideoView extends Component {
     enableAudio = true,
     enableVideo = true,
     encodingParameters = {
-      "enableH264Codec": false,
+      "preferredCodecs": [],
       "audioBitrate": -1,
       "videoBitrate": -1
     },

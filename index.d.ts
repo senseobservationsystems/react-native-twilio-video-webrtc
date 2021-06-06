@@ -99,6 +99,8 @@ declare module "react-native-twilio-video-webrtc" {
   export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
 
   export type TrackSwitchOffMode = "DISABLED" | "PREDICTED" | "DETECTED";
+  
+  export type Codecs = "VP9" | "VP8" | "H264";
 
   export type CameraSettings = {
     maxDimensions: string;
@@ -127,7 +129,7 @@ declare module "react-native-twilio-video-webrtc" {
     enableAudio?: boolean;
     enableVideo?: boolean;
     encodingParameters?: {
-      enableH264Codec?: boolean;
+      preferredCodecs?: Codecs[];
       // if audioBitrate OR videoBitrate is provided, you must provide both
       audioBitrate?: number;
       videoBitrate?: number;

@@ -597,11 +597,25 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName 
 
     builder.roomName = roomName;
 
-    if(encodingParameters[@"enableH264Codec"]){
-        if ([encodingParameters[@"enableH264Codec"] boolValue] == true) {
-            builder.preferredVideoCodecs = @[ [TVIH264Codec new] ];
-            NSLog(@"Preferring H264 Codec");
+    if([encodingParameters objectForKey:@"preferredCodecs"]){
+        NSLog(@"Setting up array of preferred codecs:");
+        
+        NSMutableArray<TVIVideoCodec *> *codecs = [[NSMutableArray alloc] init];
+        NSArray* codecStrings = [encodingParameters valueForKey:@"preferredCodecs"];
+        for (NSString* item in codecStrings) {
+            NSLog(@"%@", item);
+
+            if ([item  isEqual: @"VP9"]) {
+                [codecs addObject:[TVIVp9Codec new]];
+            } else if ([item  isEqual: @"VP8"]) {
+                [codecs addObject:[TVIVp8Codec new]];
+            } else if ([item  isEqual: @"H264"]) {
+                [codecs addObject:[TVIH264Codec new]];
+            } else {
+                NSLog(@"Unknown preferred codec passed %@", item);
+            }
         }
+        builder.preferredVideoCodecs = codecs;
     }
 
     if (encodingParameters[@"audioBitrate"] && encodingParameters[@"videoBitrate"]) {

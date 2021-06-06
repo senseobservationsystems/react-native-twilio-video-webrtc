@@ -9,6 +9,7 @@
 package com.twiliorn.library;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ import android.view.View;
 
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
@@ -82,6 +84,7 @@ import com.twilio.video.TrackSwitchOffMode;
 import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
 import com.twilio.video.VideoBandwidthProfileOptions;
+import com.twilio.video.VideoCodec;
 import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoRenderer;
@@ -89,6 +92,8 @@ import com.twilio.video.VideoView;
 
 import com.twilio.audioswitch.AudioDevice;
 import com.twilio.audioswitch.AudioSwitch;
+import com.twilio.video.Vp8Codec;
+import com.twilio.video.Vp9Codec;
 
 import org.webrtc.voiceengine.WebRtcAudioManager;
 
@@ -131,7 +136,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean enableNetworkQualityReporting = false;
     private boolean isVideoEnabled = false;
     private boolean dominantSpeakerEnabled = false;
-    private boolean enableH264Codec = false;
+    private ReadableArray preferredCodecs;
 
     private int audioBitrate = -1;
     private int videoBitrate = -1;
@@ -476,8 +481,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         this.enableNetworkQualityReporting = enableNetworkQualityReporting;
         this.dominantSpeakerEnabled = dominantSpeakerEnabled;
 
-        if (encodingParameters.hasKey("enableH264Codec")) {
-            this.enableH264Codec = encodingParameters.getBoolean("enableH264Codec");
+        if (encodingParameters.hasKey("preferredCodecs")) {
+            this.preferredCodecs = encodingParameters.getArray("preferredCodecs");
         }
 
         if (encodingParameters.hasKey("audioBitrate")) {
@@ -697,9 +702,28 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             }
         }
 
-         if (this.enableH264Codec) {
-             connectOptionsBuilder.preferVideoCodecs(Collections.singletonList(new H264Codec()));
-             Log.d(TAG, "Preferring H264 Codec");
+         if (this.preferredCodecs != null) {
+             List<VideoCodec> codecs = new ArrayList<>();
+
+             Log.d(TAG, "Setting up array of preferred codecs:");
+             for (int i = 0; i < preferredCodecs.size(); i++) {
+                 String item = preferredCodecs.getString(i);
+                 Log.d(TAG, "Codec #" + i + " - " + item);
+                 switch (item) {
+                     case "VP9":
+                         codecs.add(new Vp9Codec());
+                         break;
+                     case "VP8":
+                         codecs.add(new Vp8Codec());
+                         break;
+                     case "H264":
+                         codecs.add(new H264Codec());
+                         break;
+                     default:
+                         Log.w(TAG, "Unknown preferred codec passed " + item);
+                 }
+             }
+             connectOptionsBuilder.preferVideoCodecs(codecs);
          }
 
         connectOptionsBuilder.bandwidthProfile(this.bandwidthProfile);
