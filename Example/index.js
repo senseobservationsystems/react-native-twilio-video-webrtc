@@ -123,8 +123,8 @@ export default class Example extends Component {
     mountStatus: 'unmounted',
     participants: new Map(),
     videoTracks: new Map(),
-    token: '',
-    iosToken: ''
+    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmLTE2MjI5NzY4MTgiLCJpc3MiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmIiwic3ViIjoiQUM0MGMxZDI0YjdkMmJmM2U4YTcwZGZkZDE2NDcyZTU0OSIsImV4cCI6MTYyMjk4MDQxOCwiZ3JhbnRzIjp7ImlkZW50aXR5IjoiYW5kcm9pZC10ZXN0IiwidmlkZW8iOnt9fX0.-6sIPW_PQakEkTu4OSlJf8ZZ4ef3YwqH5tU6WLRYJC8',
+    iosToken: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmLTE2MjI5NzY4MzciLCJpc3MiOiJTSzU5OWZhOWQ5Y2QzNGU1YjE4MGIyMjMxMGRkYTFlMTVmIiwic3ViIjoiQUM0MGMxZDI0YjdkMmJmM2U4YTcwZGZkZDE2NDcyZTU0OSIsImV4cCI6MTYyMjk4MDQzNywiZ3JhbnRzIjp7ImlkZW50aXR5IjoiaW9zLXRlc3QiLCJ2aWRlbyI6e319fQ.fUvpIy1Fn84Ue38i2rP5v0qAnBAZ0KxLsurhMLRv_aU'
   }
   
   _onConnectButtonPress = async () => {
@@ -136,9 +136,9 @@ export default class Example extends Component {
     if (Platform.OS === 'android') {
       await this._requestAudioPermission()
       await this._requestCameraPermission()
-      this.refs.twilioVideo.connect({ accessToken: this.state.token, roomName: 'test', enableVideo: true  })
+      this.refs.twilioVideo.connect({ accessToken: this.state.token, roomName: 'test', enableVideo: true})
     } else {
-      this.refs.twilioVideo.connect({ accessToken: this.state.iosToken, roomName: 'test', enableVideo: true })
+      this.refs.twilioVideo.connect({ accessToken: this.state.iosToken, roomName: 'test', enableVideo: true})
     }
 
     this.audioPlayer = new TwilioStereoTonePlayer();
