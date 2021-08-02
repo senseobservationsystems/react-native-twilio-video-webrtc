@@ -7,8 +7,9 @@ declare module "react-native-twilio-video-webrtc" {
     scalesType: number;
     onTop?: boolean;
     ref?: React.Ref<any>;
+    applyZOrder?: boolean;
   }
-  
+
   export interface TrackIdentifier {
     participantSid: string;
     videoTrackSid: string;
@@ -18,6 +19,7 @@ declare module "react-native-twilio-video-webrtc" {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
     scalesType?: number;
+    applyZOrder?: boolean;
   }
 
   export interface Participant {
@@ -65,7 +67,7 @@ declare module "react-native-twilio-video-webrtc" {
   export type RoomErrorEventCb = (t: RoomErrorEventArgs) => void;
 
   export type ParticipantEventCb = (p: ParticipantEventArgs) => void;
-  
+
   export type NetworkLevelChangeEventCb = (p: NetworkLevelChangeEventArgs) => void;
 
   export type TwilioVideoProps = ViewProps & {
@@ -88,13 +90,41 @@ declare module "react-native-twilio-video-webrtc" {
     onRoomParticipantDidConnect?: ParticipantEventCb;
     onRoomParticipantDidDisconnect?: ParticipantEventCb;
     onNetworkQualityLevelsChanged?: NetworkLevelChangeEventCb;
+    onDominantSpeakerDidChange?: ParticipantEventCb;
 
     onStatsReceived?: (data: any) => void;
-    onDataTrackMessageReceived?: ({ message: string }) => void;
+    onDataTrackMessageReceived?: (data: { message: string }) => void;
     ref?: React.Ref<any>;
   };
 
-  type iOSConnectParams = {
+  export type BandwidthProfileMode = "GRID" | "COLLABORATION" | "PRESENTATION";
+
+  export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
+
+  export type TrackSwitchOffMode = "DISABLED" | "PREDICTED" | "DETECTED";
+
+  export type CameraSettings = {
+    maxDimensions: string;
+    maxFPS: number;
+  };
+
+  // Dimensions are provided in the string in the format of <width>x<height>
+  export type RenderDimensions = {
+    "low"?: string,
+    "standard"?: string,
+    "high"?: string,
+  }
+
+  export type BandwidthProfileOptions = {
+    mode?: BandwidthProfileMode
+    maxTracks?: number,
+    maxSubscriptionBitrate?: number,
+    dominantSpeakerPriority?: TrackPriority,
+    renderDimensions?: RenderDimensions,
+    trackSwitchOffMode?: TrackSwitchOffMode,
+  }
+
+  type ConnectParams = {
     accessToken: string;
     roomName?: string;
     enableAudio?: boolean;
@@ -106,23 +136,16 @@ declare module "react-native-twilio-video-webrtc" {
       videoBitrate?: number;
     };
     enableNetworkQualityReporting?: boolean;
-  };
-
-  type androidConnectParams = {
-    roomName?: string;
-    accessToken: string;
-    enableAudio?: boolean;
-    enableVideo?: boolean;
-    enableRemoteAudio?: boolean;
-    enableNetworkQualityReporting?: boolean;
+    dominantSpeakerEnabled?: boolean;
+    bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
   class TwilioVideo extends React.Component<TwilioVideoProps> {
-    setLocalVideoEnabled: (enabled: boolean) => Promise<boolean>;
+    setLocalVideoEnabled: (enabled: boolean, cameraSettings?: CameraSettings) => Promise<boolean>;
     setLocalAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setRemoteAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setBluetoothHeadsetConnected: (enabled: boolean) => Promise<boolean>;
-    connect: (options: iOSConnectParams | androidConnectParams) => void;
+    connect: (options: ConnectParams) => void;
     disconnect: () => void;
     flipCamera: () => void;
     toggleSoundSetup: (speaker: boolean) => void;
@@ -132,6 +155,8 @@ declare module "react-native-twilio-video-webrtc" {
     publishLocalVideo: () => void;
     unpublishLocalVideo: () => void;
     sendString: (message: string) => void;
+    setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
+    setStereoEnabled: (enabled: boolean) => Promise<boolean>;
   }
 
   class TwilioVideoLocalView extends React.Component<
@@ -143,4 +168,14 @@ declare module "react-native-twilio-video-webrtc" {
   > {}
 
   export { TwilioVideoLocalView, TwilioVideoParticipantView, TwilioVideo };
+
+  export class TwilioStereoTonePlayer {
+      preload: (filename: string) => Promise<boolean>;
+      play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;
+      pause: () => void;
+      setVolume: (volume: number) => void;
+      setPlaybackSpeed: (speed: number) => void;
+      release: (filename: string) => void;
+      terminate: () => void;
+  }
 }

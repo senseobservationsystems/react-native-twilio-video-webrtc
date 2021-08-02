@@ -138,7 +138,12 @@ const propTypes = {
   /**
    * Callback that is called when network quality levels are changed (only if enableNetworkQualityReporting in connect is set to true)
    */
-  onNetworkQualityLevelsChanged: PropTypes.func
+  onNetworkQualityLevelsChanged: PropTypes.func,
+  /**
+   * Called when dominant speaker changes
+   * @param {{ participant, room }} dominant participant and room
+   */
+  onDominantSpeakerDidChange: PropTypes.func
 }
 
 const nativeEvents = {
@@ -165,16 +170,35 @@ class CustomTwilioVideoView extends Component {
     accessToken,
     enableAudio = true,
     enableVideo = true,
-    enableRemoteAudio = true,
-    enableNetworkQualityReporting = false
+    encodingParameters = {
+      "enableH264Codec": false,
+      "audioBitrate": -1,
+      "videoBitrate": -1
+    },
+    enableNetworkQualityReporting = false,
+    dominantSpeakerEnabled = false,
+    bandwidthProfileOptions = {
+      "mode":"",
+      "maxTracks": -1,
+      "maxSubscriptionBitrate": -1,
+      "dominantSpeakerPriority": "",
+      "renderDimensions": {
+        "low": "",
+        "standard": "",
+        "high": "",
+      },
+      "trackSwitchOffMode":"",
+    }
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
       accessToken,
       enableAudio,
       enableVideo,
-      enableRemoteAudio,
-      enableNetworkQualityReporting
+      encodingParameters,
+      enableNetworkQualityReporting,
+      dominantSpeakerEnabled,
+      bandwidthProfileOptions
     ])
   }
 
@@ -212,8 +236,8 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.switchCamera, [])
   }
 
-  setLocalVideoEnabled (enabled) {
-    this.runCommand(nativeEvents.toggleVideo, [enabled])
+  setLocalVideoEnabled (enabled, cameraSettings) {
+    this.runCommand(nativeEvents.toggleVideo, [enabled, cameraSettings])
     return Promise.resolve(enabled)
   }
 
@@ -235,6 +259,10 @@ class CustomTwilioVideoView extends Component {
   setStereoEnabled (enabled) {
     this.runCommand(nativeEvents.toggleStereo, [enabled])
     return Promise.resolve(enabled)
+  }
+
+  setTrackPriority (trackSid, priority) {
+    this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority])
   }
 
   getStats () {
@@ -285,7 +313,8 @@ class CustomTwilioVideoView extends Component {
       'onParticipantEnabledAudioTrack',
       'onParticipantDisabledAudioTrack',
       'onStatsReceived',
-      'onNetworkQualityLevelsChanged'
+      'onNetworkQualityLevelsChanged',
+      'onDominantSpeakerDidChange'
     ].reduce((wrappedEvents, eventName) => {
       if (this.props[eventName]) {
         return {

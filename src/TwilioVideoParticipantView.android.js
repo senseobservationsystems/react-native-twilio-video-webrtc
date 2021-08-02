@@ -26,7 +26,8 @@ class TwilioRemotePreview extends React.Component {
     importantForAccessibility: PropTypes.string,
     accessibilityLabel: PropTypes.string,
     nativeID: PropTypes.string,
-    testID: PropTypes.string
+    testID: PropTypes.string,
+    applyZOrder: PropTypes.bool
   }
 
   buildNativeEventWrappers () {
