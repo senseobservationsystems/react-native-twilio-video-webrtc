@@ -90,6 +90,7 @@ declare module "react-native-twilio-video-webrtc" {
     onRoomParticipantDidConnect?: ParticipantEventCb;
     onRoomParticipantDidDisconnect?: ParticipantEventCb;
     onNetworkQualityLevelsChanged?: NetworkLevelChangeEventCb;
+    onDominantSpeakerDidChange?: ParticipantEventCb;
 
     onStatsReceived?: (data: any) => void;
     onDataTrackMessageReceived?: (data: { message: string }) => void;
