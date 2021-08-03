@@ -256,8 +256,11 @@ export default class TwilioVideo extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
+   * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {object} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
+   * @param  {Boolean} dominantSpeakerEnabled Enable dominant speaker
+   * @param  {object} bandwidthProfileOptions Bandwidth profile options
    */
   connect ({
     roomName,
