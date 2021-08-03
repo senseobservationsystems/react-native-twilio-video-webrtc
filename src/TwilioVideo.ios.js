@@ -174,6 +174,7 @@ export default class TwilioVideo extends Component {
     this._registerEvents()
     if (this.props.autoInitializeCamera !== false) {
       this._startLocalVideo()
+      // this._startLocalVideo(false) // TODO ND
     }
     this._startLocalAudio()
   }
@@ -217,7 +218,7 @@ export default class TwilioVideo extends Component {
   /**
    * Enable or disable stereo mode
    */
-   setStereoEnabled (enabled) {
+  setStereoEnabled (enabled) {
     return TWVideoModule.setStereoEnabled(enabled)
   }
 
@@ -231,7 +232,7 @@ export default class TwilioVideo extends Component {
   }
 
   /**
-   * Filp between the front and back camera
+   * Flip between the front and back camera
    */
   flipCamera () {
     TWVideoModule.flipCamera()
@@ -255,7 +256,7 @@ export default class TwilioVideo extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
-   * @param  {String} encodingParameters Control Encoding config
+   * @param  {object} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
    */
   connect ({
