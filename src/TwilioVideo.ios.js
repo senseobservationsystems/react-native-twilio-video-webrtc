@@ -164,6 +164,10 @@ export default class TwilioVideo extends Component {
 
     this._subscriptions = []
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
+
+    this.setStereoEnabled = this.setStereoEnabled.bind(this)
+    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
+    this.usesCustomAudioDevice = true;
   }
 
   componentDidMount () {
@@ -197,8 +201,9 @@ export default class TwilioVideo extends Component {
 
   /**
    * Enable or disable local video
+   * NOTE: cameraSettings are ignored on iOS
    */
-  setLocalVideoEnabled (enabled) {
+   setLocalVideoEnabled (enabled, cameraSettings) {
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -207,6 +212,22 @@ export default class TwilioVideo extends Component {
    */
   setLocalAudioEnabled (enabled) {
     return TWVideoModule.setLocalAudioEnabled(enabled)
+  }
+
+  /**
+   * Enable or disable stereo mode
+   */
+   setStereoEnabled (enabled) {
+    return TWVideoModule.setStereoEnabled(enabled)
+  }
+
+  /**
+   * Specifies the priority a remote participants video track should get
+   * @param {*} trackSid the SID of the track setting the priority for
+   * @param {*} trackPriority the priority of the track. Can be low, standard, high or null
+   */
+  setTrackPriority (trackSid, trackPriority) {
+    TWVideoModule.setTrackPriority(trackSid, trackPriority)
   }
 
   /**
@@ -245,7 +266,8 @@ export default class TwilioVideo extends Component {
     enableVideo = true,
     encodingParameters = null,
     enableNetworkQualityReporting = false,
-    dominantSpeakerEnabled = false
+    dominantSpeakerEnabled = false,
+    bandwidthProfileOptions = null
   }) {
     TWVideoModule.connect(accessToken,
       roomName,
@@ -254,7 +276,8 @@ export default class TwilioVideo extends Component {
       encodingParameters,
       enableNetworkQualityReporting,
       dominantSpeakerEnabled,
-      cameraType
+      cameraType,
+      // bandwidthProfileOptions // TODO ND
     )
   }
 
@@ -301,8 +324,9 @@ export default class TwilioVideo extends Component {
     TWVideoModule.sendString(message)
   }
 
-  _startLocalVideo () {
+  _startLocalVideo (enabled) {
     TWVideoModule.startLocalVideo()
+    // TWVideoModule.startLocalVideo(enabled) // TODO ND
   }
 
   _stopLocalVideo () {
@@ -311,6 +335,7 @@ export default class TwilioVideo extends Component {
 
   _startLocalAudio () {
     TWVideoModule.startLocalAudio()
+    // TWVideoModule.startLocalAudio(this.usesCustomAudioDevice) // TODO ND
   }
 
   _stopLocalAudio () {
