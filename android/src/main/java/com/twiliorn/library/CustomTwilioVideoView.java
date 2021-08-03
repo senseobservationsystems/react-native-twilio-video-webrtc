@@ -22,33 +22,22 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringDef;
-import kotlin.Unit;
-
+import android.support.annotation.NonNull;
+import android.support.annotation.StringDef;
 import android.util.Log;
 import android.view.View;
 
 import com.facebook.react.bridge.LifecycleEventListener;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
-import com.facebook.react.uimanager.UIManagerModule;
-import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.twilio.video.AudioTrackPublication;
-import com.twilio.video.BandwidthProfileMode;
-import com.twilio.video.BandwidthProfileOptions;
 import com.twilio.video.BaseTrackStats;
 import com.twilio.video.CameraCapturer;
 import com.twilio.video.ConnectOptions;
-import com.twilio.video.EncodingParameters;
-import com.twilio.video.H264Codec;
 import com.twilio.video.LocalAudioTrack;
 import com.twilio.video.LocalAudioTrackPublication;
 import com.twilio.video.LocalAudioTrackStats;
@@ -74,23 +63,18 @@ import com.twilio.video.RemoteVideoTrack;
 import com.twilio.video.RemoteVideoTrackPublication;
 import com.twilio.video.RemoteVideoTrackStats;
 import com.twilio.video.Room;
+import com.twilio.video.Room.State;
 import com.twilio.video.StatsListener;
 import com.twilio.video.StatsReport;
-import com.twilio.video.TrackPriority;
 import com.twilio.video.TrackPublication;
-import com.twilio.video.TrackSwitchOffMode;
 import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
-import com.twilio.video.VideoBandwidthProfileOptions;
-import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
-import com.twilio.video.VideoRenderer;
-import com.twilio.video.VideoView;
-
-import com.twilio.audioswitch.AudioDevice;
-import com.twilio.audioswitch.AudioSwitch;
+import com.twilio.video.VideoFormat;
 
 import org.webrtc.voiceengine.WebRtcAudioManager;
+
+import tvi.webrtc.Camera1Enumerator;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -123,26 +107,16 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DOMINANT_SPEA
 public class CustomTwilioVideoView extends View implements LifecycleEventListener, AudioManager.OnAudioFocusChangeListener {
     private static final String TAG = "CustomTwilioVideoView";
     private static final String DATA_TRACK_MESSAGE_THREAD_NAME = "DataTrackMessages";
-
-    private static final VideoDimensions DEFAULT_MAX_CAPTURE_RESOLUTION = VideoDimensions.CIF_VIDEO_DIMENSIONS;
-    private static final int DEFAULT_MAX_CAPTURE_FPS = 25;
-
+    private static final String FRONT_CAMERA_TYPE = "front";
+    private static final String BACK_CAMERA_TYPE = "back";
     private boolean enableRemoteAudio = false;
     private boolean enableNetworkQualityReporting = false;
     private boolean isVideoEnabled = false;
     private boolean dominantSpeakerEnabled = false;
-    private boolean enableH264Codec = false;
-
-    private int audioBitrate = -1;
-    private int videoBitrate = -1;
-
-    private BandwidthProfileOptions bandwidthProfile;
-
-    private VideoDimensions maxCaptureDimensions = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_RESOLUTION;
-    private int maxCaptureFPS  = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_FPS;
-
-    // NiceDay Branch Variables
-    private boolean stereoMode = false;
+    private static String frontFacingDevice;
+    private static String backFacingDevice;
+    private boolean maintainVideoTrackInBackground = false;
+    private String cameraType = "";
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({Events.ON_CAMERA_SWITCHED,
@@ -220,12 +194,10 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private AudioManager audioManager;
     private int previousAudioMode;
     private boolean disconnectedFromOnDestroy;
+    private IntentFilter intentFilter;
+    private BecomingNoisyReceiver myNoisyAudioStreamReceiver;
 
-    // Audio Management
-    private AudioSwitch audioDeviceSelector;
-    private int savedVolumeControlStream;
-
-    // Dedicated thread and handler for messages received from a RemoteDataTrack
+      // Dedicated thread and handler for messages received from a RemoteDataTrack
     private final HandlerThread dataTrackMessageThread =
             new HandlerThread(DATA_TRACK_MESSAGE_THREAD_NAME);
     private Handler dataTrackMessageThreadHandler;
@@ -248,85 +220,48 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
          * Enable changing the volume using the up/down keys during a conversation
          */
         if (themedReactContext.getCurrentActivity() != null) {
-            savedVolumeControlStream = themedReactContext.getCurrentActivity().getVolumeControlStream();
             themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
         }
-
-        audioDeviceSelector = new AudioSwitch(themedReactContext);
-        audioDeviceSelector.start((audioDevices, currentDevice) -> {
-            // As Audio Switch prioritises Earpiece over Speakerphone, we specify our own device prioritization order int his listener
-
-            AudioDevice bluetoothDevice = null;
-            AudioDevice wiredDevice = null;
-            AudioDevice speakerPhone = null;
-
-            // Loop through all available audio devices and find the last connected bluetooth, wired and speakerphone device
-            for (AudioDevice device : audioDevices) {
-                if (device instanceof AudioDevice.BluetoothHeadset) {
-                    bluetoothDevice = device;
-                } else if (device instanceof AudioDevice.WiredHeadset) {
-                    wiredDevice = device;
-                } else if (device instanceof AudioDevice.Speakerphone) {
-                    speakerPhone = device;
-                }
-            }
-
-            // Select devices based on our order of prioritisation
-            // This means Bluetooth -> Wired Headset -> Speakerphone
-            if (bluetoothDevice != null && !(currentDevice instanceof AudioDevice.BluetoothHeadset)) {
-                audioDeviceSelector.selectDevice(bluetoothDevice);
-            } else if (bluetoothDevice == null && wiredDevice != null && !(currentDevice instanceof AudioDevice.WiredHeadset)) {
-                audioDeviceSelector.selectDevice(wiredDevice);
-            } else if (bluetoothDevice == null && wiredDevice == null && speakerPhone != null && !(currentDevice instanceof AudioDevice.Speakerphone)){
-                audioDeviceSelector.selectDevice(speakerPhone);
-            }
-
-            return Unit.INSTANCE;
-        });
-
         /*
          * Needed for setting/abandoning audio focus during call
          */
         audioManager = (AudioManager) themedReactContext.getSystemService(Context.AUDIO_SERVICE);
+        myNoisyAudioStreamReceiver = new BecomingNoisyReceiver();
+        intentFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
 
         // Create the local data track
-        // localDataTrack = LocalDataTrack.create(this);
-        localDataTrack = LocalDataTrack.create(getContext());
+       // localDataTrack = LocalDataTrack.create(this);
+       localDataTrack = LocalDataTrack.create(getContext());
 
-        // Start the thread where data messages are received
+       // Start the thread where data messages are received
         dataTrackMessageThread.start();
         dataTrackMessageThreadHandler = new Handler(dataTrackMessageThread.getLooper());
 
-        // enable stereo out put from the WebRTCAudio Manager as a default as it doesn't impact the audio
-        tvi.webrtc.voiceengine.WebRtcAudioManager.setStereoOutput(true);
     }
 
     // ===== SETUP =================================================================================
 
-    private VideoConstraints buildVideoConstraints() {
-        Log.d(TAG,"Setting camera constraints. Max Dimensions: "
-            + this.maxCaptureDimensions + " - Max FPS: " + this.maxCaptureFPS);
-
-        return new VideoConstraints.Builder()
-                .maxVideoDimensions(this.maxCaptureDimensions)
-                .maxFps(this.maxCaptureFPS)
-                .build();
+    private VideoFormat buildVideoFormat() {
+        return new VideoFormat(VideoDimensions.CIF_VIDEO_DIMENSIONS, 15);
     }
 
-    private CameraCapturer createCameraCaputer(Context context, CameraCapturer.CameraSource cameraSource) {
+    private CameraCapturer createCameraCaputer(Context context, String cameraId) {
         CameraCapturer newCameraCapturer = null;
         try {
             newCameraCapturer = new CameraCapturer(
                     context,
-                    cameraSource,
+                    cameraId,
                     new CameraCapturer.Listener() {
                         @Override
                         public void onFirstFrameAvailable() {
                         }
 
                         @Override
-                        public void onCameraSwitched() {
+                        public void onCameraSwitched(String newCameraId) {
                             setThumbnailMirror();
+                            WritableMap event = new WritableNativeMap();
+                            event.putBoolean("isBackCamera", isCurrentCameraSourceBackFacing());
+                            pushEvent(CustomTwilioVideoView.this, ON_CAMERA_SWITCHED, event);
                         }
 
                         @Override
@@ -341,26 +276,55 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         }
     }
 
-    private boolean createLocalVideo(boolean enableVideo) {
-        if (!enableVideo) {
-            return true;
-        }
-
-        isVideoEnabled = enableVideo;
-        
-        // Share your camera
-        cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.FRONT_CAMERA);
-        if (cameraCapturer == null){
-            cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.BACK_CAMERA);
-        }
-
-        if (cameraCapturer != null && cameraCapturer.getSupportedFormats().size() > 0) {
-            localVideoTrack = LocalVideoTrack.create(getContext(), enableVideo, cameraCapturer, buildVideoConstraints());
-            if (thumbnailVideoView != null && localVideoTrack != null) {
-                localVideoTrack.addRenderer(thumbnailVideoView);
+    private void buildDeviceInfo() {
+        Camera1Enumerator enumerator = new Camera1Enumerator();
+        String[] deviceNames = enumerator.getDeviceNames();
+        backFacingDevice = null;
+        frontFacingDevice = null;
+        for (String deviceName : deviceNames) {
+            if (enumerator.isBackFacing(deviceName) && enumerator.getSupportedFormats(deviceName).size() > 0) {
+                backFacingDevice = deviceName;
+            } else if (enumerator.isFrontFacing(deviceName) && enumerator.getSupportedFormats(deviceName).size() > 0) {
+                frontFacingDevice = deviceName;
             }
-            setThumbnailMirrorOnStart(thumbnailVideoView);
         }
+    }
+
+    private boolean createLocalVideo(boolean enableVideo, String cameraType) {
+        isVideoEnabled = enableVideo;
+
+        // Share your camera
+        buildDeviceInfo();
+
+        if (cameraType.equals(CustomTwilioVideoView.FRONT_CAMERA_TYPE)) {
+            if (frontFacingDevice != null) {
+                cameraCapturer = this.createCameraCaputer(getContext(), frontFacingDevice);
+            } else {
+                // IF the camera is unavailable try the other camera
+                cameraCapturer = this.createCameraCaputer(getContext(), backFacingDevice);
+            }
+        } else {
+            if (backFacingDevice != null) {
+                cameraCapturer = this.createCameraCaputer(getContext(), backFacingDevice);
+            } else {
+                // IF the camera is unavailable try the other camera
+                cameraCapturer = this.createCameraCaputer(getContext(), frontFacingDevice);
+            }
+        }
+
+        // If no camera is available let the caller know
+        if (cameraCapturer == null) {
+            WritableMap event = new WritableNativeMap();
+            event.putString("error", "No camera is supported on this device");
+            pushEvent(CustomTwilioVideoView.this, ON_CONNECT_FAILURE, event);
+            return false;
+        }
+
+        localVideoTrack = LocalVideoTrack.create(getContext(), enableVideo, cameraCapturer, buildVideoFormat());
+        if (thumbnailVideoView != null && localVideoTrack != null) {
+            localVideoTrack.addSink(thumbnailVideoView);
+        }
+        setThumbnailMirror();
         return true;
     }
 
@@ -377,12 +341,12 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
              * If the local video track was released when the app was put in the background, recreate.
              */
             if (cameraCapturer != null && localVideoTrack == null) {
-                localVideoTrack = LocalVideoTrack.create(getContext(), isVideoEnabled, cameraCapturer, buildVideoConstraints());
+                localVideoTrack = LocalVideoTrack.create(getContext(), isVideoEnabled, cameraCapturer, buildVideoFormat());
             }
 
             if (localVideoTrack != null) {
                 if (thumbnailVideoView != null) {
-                    localVideoTrack.addRenderer(thumbnailVideoView);
+                    localVideoTrack.addSink(thumbnailVideoView);
                 }
 
                 /*
@@ -393,7 +357,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 }
             }
 
-//            themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+            themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
 
         }
     }
@@ -404,7 +368,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
          * Release the local video track before going in the background. This ensures that the
          * camera can be used by other applications while this app is in the background.
          */
-        if (localVideoTrack != null) {
+        if (localVideoTrack != null && !maintainVideoTrackInBackground) {
             /*
              * If this local video track is being shared in a Room, remove from local
              * participant before releasing the video track. Participants will be notified that
@@ -421,14 +385,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
     @Override
     public void onHostDestroy() {
-        /*
-         * Tear down audio management and restore previous volume stream
-         */
-        audioDeviceSelector.stop();
-        if (themedReactContext != null && themedReactContext.getCurrentActivity() != null) {
-            themedReactContext.getCurrentActivity().setVolumeControlStream(savedVolumeControlStream);
-        }
-
         /*
          * Always disconnect from the room before leaving the Activity to
          * ensure any memory allocated to the Room resource is freed.
@@ -454,6 +410,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         // Quit the data track message thread
         dataTrackMessageThread.quit();
 
+
     }
 
     public void releaseResource() {
@@ -467,195 +424,46 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     // ====== CONNECTING ===========================================================================
 
     public void connectToRoomWrapper(
-            String roomName, String accessToken, boolean enableAudio, boolean enableVideo,
-            ReadableMap encodingParameters, boolean enableNetworkQualityReporting, boolean dominantSpeakerEnabled,
-            ReadableMap bandwidthProfileOptions) {
+            String roomName,
+            String accessToken,
+            boolean enableAudio,
+            boolean enableVideo,
+            boolean enableRemoteAudio,
+            boolean enableNetworkQualityReporting,
+            boolean dominantSpeakerEnabled,
+            boolean maintainVideoTrackInBackground,
+            String cameraType
+          ) {
         this.roomName = roomName;
         this.accessToken = accessToken;
-        this.enableRemoteAudio = enableAudio;
+        this.enableRemoteAudio = enableRemoteAudio;
         this.enableNetworkQualityReporting = enableNetworkQualityReporting;
         this.dominantSpeakerEnabled = dominantSpeakerEnabled;
-
-        if (encodingParameters.hasKey("enableH264Codec")) {
-            this.enableH264Codec = encodingParameters.getBoolean("enableH264Codec");
-        }
-
-        if (encodingParameters.hasKey("audioBitrate")) {
-            this.audioBitrate = encodingParameters.getInt("audioBitrate");
-        }
-
-        if (encodingParameters.hasKey("videoBitrate")) {
-            this.videoBitrate = encodingParameters.getInt("videoBitrate");
-        }
-
-        this.bandwidthProfile = prepareBandwidthProfile(bandwidthProfileOptions);
+        this.maintainVideoTrackInBackground = maintainVideoTrackInBackground;
+        this.cameraType = cameraType;
 
         // Share your microphone
         localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
 
-        if (cameraCapturer == null) {
-            boolean createVideoStatus = createLocalVideo(enableVideo);
+        if (cameraCapturer == null && enableVideo) {
+            boolean createVideoStatus = createLocalVideo(enableVideo, cameraType);
             if (!createVideoStatus) {
+                Log.d("RNTwilioVideo", "Failed to create local video");
                 // No need to connect to room if video creation failed
                 return;
-            }
+        }
+        } else {
+            isVideoEnabled = false;
         }
 
-        connectToRoom(enableAudio);
+        setAudioFocus(enableAudio);
+        connectToRoom();
     }
 
-    // Functions to parse the bandwidth profile map
-    private TrackPriority parsePriorityString(@Nullable String priority) {
-        if (priority != null && !priority.trim().isEmpty()) {
-            if (priority.toUpperCase().equals("LOW")) {
-                return TrackPriority.LOW;
-            } else if (priority.toUpperCase().equals("STANDARD")) {
-                return TrackPriority.STANDARD;
-            } else if (priority.toUpperCase().equals("HIGH")) {
-                return TrackPriority.HIGH;
-            } else if (priority.toUpperCase().equals("NULL")) {
-                return null;
-            } else {
-                Log.w(TAG, "Unknown priority string" + priority);
-                return null;
-            }
-        }
-
-        return null;
-    }
-
-    private VideoDimensions parseDimensionsString(@Nullable String dimensions) {
-        if (dimensions != null && !dimensions.trim().isEmpty()) {
-            String[] dimensions_array = dimensions.split("x");
-
-            // There can only be 2 items for a correct <width>x<height> string
-            if (dimensions_array.length != 2) {
-                return null;
-            }
-
-            int w = Integer.parseInt(dimensions_array[0]);
-            int h = Integer.parseInt(dimensions_array[1]);
-
-            return new VideoDimensions(w,h);
-        }
-
-        return null;
-    }
-
-    private BandwidthProfileOptions prepareBandwidthProfile(ReadableMap options) {
-
-        BandwidthProfileMode mode = null;
-        TrackSwitchOffMode trackSwitchOffMode = null;
-        @Nullable Long maxTracks = null;
-        @Nullable Long maxSubscriptionBitrate = null;
-        TrackPriority dominantSpeakerPriority = null;
-        Map<TrackPriority, VideoDimensions> renderDimensions = new HashMap<>();
-
-        if (options.hasKey("mode")) {
-            String modeString = options.getString("mode");
-
-            // Parse mode of the current call
-            if (modeString != null) {
-                if (modeString.toUpperCase().equals("GRID")) {
-                    mode = BandwidthProfileMode.GRID;
-                } else if (modeString.toUpperCase().equals("COLLABORATION")) {
-                    mode = BandwidthProfileMode.COLLABORATION;
-                } else if (modeString.toUpperCase().equals("PRESENTATION")) {
-                    mode = BandwidthProfileMode.PRESENTATION;
-                } else {
-                    Log.w(TAG, "Unknown Bandwidth Profile Mode" + modeString);
-                }
-            }
-        }
-
-        if (options.hasKey("trackSwitchOffMode")) {
-            String trackSwitchOffModeString = options.getString("trackSwitchOffMode");
-
-            // Parse mode of the current call
-            if (trackSwitchOffModeString != null) {
-                if (trackSwitchOffModeString.toUpperCase().equals("DISABLED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.DISABLED;
-                } else if (trackSwitchOffModeString.toUpperCase().equals("PREDICTED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.PREDICTED;
-                } else if (trackSwitchOffModeString.toUpperCase().equals("DETECTED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.DETECTED;
-                } else {
-                    Log.w(TAG, "Unknown Track Switch Off Mode" + trackSwitchOffModeString);
-                }
-            }
-        }
-
-        // Parse max tracks to enabled during a call
-        if (options.hasKey("maxTracks")) {
-            int maxTracksAsInt = options.getInt("maxTracks");
-            if (maxTracksAsInt > 0) {
-                maxTracks = (long) maxTracksAsInt;
-            }
-        }
-
-        // Parse max subscription bit rate
-        if (options.hasKey("maxSubscriptionBitrate")) {
-            int maxSubscriptionBitrateAsInt = options.getInt("maxSubscriptionBitrate");
-            if (maxSubscriptionBitrateAsInt > 0) {
-                maxSubscriptionBitrate = (long) maxSubscriptionBitrateAsInt;
-            }
-        }
-
-        // Parse priority for dominant speaker
-        if (options.hasKey("dominantSpeakerPriority")) {
-            dominantSpeakerPriority = parsePriorityString(options.getString("dominantSpeakerPriority"));
-        }
-
-        // Parse Render Dimensions
-        if (options.hasKey("renderDimensions")) {
-            ReadableMap renderDimensionsMap = options.getMap("renderDimensions");
-            if (renderDimensionsMap != null) {
-                if (renderDimensionsMap.hasKey("low")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("low"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.LOW, dimensions);
-                    }
-                }
-
-                if (renderDimensionsMap.hasKey("standard")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("standard"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.STANDARD, dimensions);
-                    }
-                }
-
-                if (renderDimensionsMap.hasKey("high")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("high"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.HIGH, dimensions);
-                    }
-                }
-            }
-        }
-
-        Log.d(TAG, "BandwidthProfile - mode: " + mode);
-        Log.d(TAG, "BandwidthProfile - maxTracks: " + maxTracks);
-        Log.d(TAG, "BandwidthProfile - dominantSpeakerPriority: " + dominantSpeakerPriority);
-        Log.d(TAG, "BandwidthProfile - renderDimensions: " + renderDimensions);
-        Log.d(TAG, "BandwidthProfile - trackSwitchOffMode: " + trackSwitchOffMode);
-
-        VideoBandwidthProfileOptions videoBandwidthProfileOptions = new VideoBandwidthProfileOptions.Builder()
-                .mode(mode)
-                .maxTracks(maxTracks)
-                .dominantSpeakerPriority(dominantSpeakerPriority)
-                .maxSubscriptionBitrate(maxSubscriptionBitrate)
-                .renderDimensions(renderDimensions)
-                .trackSwitchOffMode(trackSwitchOffMode)
-                .build();
-
-        return new BandwidthProfileOptions(videoBandwidthProfileOptions);
-    }
-
-    public void connectToRoom(boolean enableAudio) {
+    public void connectToRoom() {
         /*
          * Create a VideoClient allowing you to connect to a Room
          */
-        setAudioFocus(enableAudio);
         ConnectOptions.Builder connectOptionsBuilder = new ConnectOptions.Builder(this.accessToken);
 
         if (this.roomName != null) {
@@ -672,7 +480,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
         //LocalDataTrack localDataTrack = LocalDataTrack.create(getContext());
 
-        if (localDataTrack != null) {
+         if (localDataTrack != null) {
             connectOptionsBuilder.dataTracks(Collections.singletonList(localDataTrack));
         }
 
@@ -685,66 +493,69 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                      NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL));
          }
 
-         // If we have specified bit rates then use them
-        if (this.audioBitrate >= 0 && this.videoBitrate >= 0) {
-            connectOptionsBuilder.encodingParameters(new EncodingParameters(this.audioBitrate, this.videoBitrate));
-            Log.d(TAG, "Setting max audio rate" + String.valueOf(this.audioBitrate) + " and max video rate: " + String.valueOf(this.videoBitrate));
-        } else {
-            // If we have specified only 1 of the bit rate values
-            if (this.audioBitrate >= 0 || this.videoBitrate >= 0) {
-                // Then warn the user that we are ignoring the value
-                Log.w(TAG, "Ignoring audio or video bitrate as only 1 of them is defined. Audio: " + String.valueOf(this.audioBitrate) + " Video:" + String.valueOf(this.videoBitrate));
-            }
-        }
-
-         if (this.enableH264Codec) {
-             connectOptionsBuilder.preferVideoCodecs(Collections.singletonList(new H264Codec()));
-             Log.d(TAG, "Preferring H264 Codec");
-         }
-
-        connectOptionsBuilder.bandwidthProfile(this.bandwidthProfile);
-
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
 
-    private void setStereoAudioFocus(boolean focus) {
-
-        // Audio is already stereo with default settings on Android < O
-        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return;
-        }
-
+    private void setAudioFocus(boolean focus) {
         if (focus) {
             previousAudioMode = audioManager.getMode();
+            // Request audio focus before making any device switch.
+            if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                audioManager.requestAudioFocus(this,
+                        AudioManager.STREAM_VOICE_CALL,
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            } else {
+                playbackAttributes = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build();
+                audioFocusRequest = new AudioFocusRequest
+                        .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                        .setAudioAttributes(playbackAttributes)
+                        .setAcceptsDelayedFocusGain(true)
+                        .setOnAudioFocusChangeListener(this, handler)
+                        .build();
+                audioManager.requestAudioFocus(audioFocusRequest);
+            }
+            /*
+             * Use MODE_IN_COMMUNICATION as the default audio mode. It is required
+             * to be in this mode when playout and/or recording starts for the best
+             * possible VoIP performance. Some devices have difficulties with
+             * speaker mode if this is not set.
+             */
+            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            audioManager.setSpeakerphoneOn(!audioManager.isWiredHeadsetOn());
+            getContext().registerReceiver(myNoisyAudioStreamReceiver, intentFilter);
 
-            // Create playback attributes that don't specify voice communication mode to allow stereo playback
-            playbackAttributes = new AudioAttributes.Builder().build();
-
-            // Request audio focus with a stereo mode
-            audioFocusRequest = new AudioFocusRequest
-                    .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                    .setAudioAttributes(playbackAttributes)
-                    .setAcceptsDelayedFocusGain(true)
-                    .setOnAudioFocusChangeListener(this, handler)
-                    .build();
-            audioManager.requestAudioFocus(audioFocusRequest);
         } else {
-            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                audioManager.abandonAudioFocus(this);
+            } else if (audioFocusRequest != null) {
+                audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            }
+
+            audioManager.setSpeakerphoneOn(false);
             audioManager.setMode(previousAudioMode);
+            try {
+                if (myNoisyAudioStreamReceiver != null) {
+                    getContext().unregisterReceiver(myNoisyAudioStreamReceiver);
+                }
+                myNoisyAudioStreamReceiver = null;
+            } catch (Exception e) {
+                // already registered
+                e.printStackTrace();
+            }
         }
     }
 
-    private void setAudioFocus(boolean focus) {
-        if (stereoMode) {
-            setStereoAudioFocus(focus);
-        } else {
-            if (focus) {
-                audioDeviceSelector.activate();
-            } else {
-                audioDeviceSelector.deactivate();
+    private class BecomingNoisyReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+//            audioManager.setSpeakerphoneOn(true);
+            if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
+                audioManager.setSpeakerphoneOn(!audioManager.isWiredHeadsetOn());
             }
         }
-
     }
 
     @Override
@@ -775,82 +586,50 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
     // ===== SEND STRING ON DATA TRACK ======================================================================
     public void sendString(String message) {
-        if (localDataTrack != null) {
-            localDataTrack.send(message);
+          if (localDataTrack != null) {
+                localDataTrack.send(message);
+          }
         }
+
+    private static boolean isCurrentCameraSourceBackFacing() {
+        return cameraCapturer != null && cameraCapturer.getCameraId() == backFacingDevice;
     }
 
     // ===== BUTTON LISTENERS ======================================================================
     private static void setThumbnailMirror() {
         if (cameraCapturer != null) {
-            CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
-            final boolean isBackCamera = (cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
-
-            // Previously, only thumbnailView has its mirroring set.
-            // This will make sure, that all Local Video have its mirroring set.
-            List<VideoRenderer> renderers = localVideoTrack.getRenderers();
-            for(VideoRenderer renderer:  renderers) {
-                if (renderer != null && renderer instanceof VideoView) {
-                    VideoView tempView = (VideoView) renderer;
-                    if (tempView.getVisibility() == View.VISIBLE) {
-                        tempView.setMirror(!isBackCamera);
-                    }
-                }
-            }
-        }
-    }
-
-    // This is to make sure that whenever Local Video is created, it has the correct mirroring
-    private static void setThumbnailMirrorOnStart(VideoView v) {
-        if (cameraCapturer != null) {
-            CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
-            final boolean isBackCamera = (cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
-
-            if (v != null && v.getVisibility() == View.VISIBLE) {
-                v.setMirror(!isBackCamera);
+            final boolean isBackCamera = isCurrentCameraSourceBackFacing();
+            if (thumbnailVideoView != null && thumbnailVideoView.getVisibility() == View.VISIBLE) {
+                thumbnailVideoView.setMirror(!isBackCamera);
             }
         }
     }
 
     public void switchCamera() {
         if (cameraCapturer != null) {
-            cameraCapturer.switchCamera();
-            CameraCapturer.CameraSource cameraSource = cameraCapturer.getCameraSource();
-            final boolean isBackCamera = cameraSource == CameraCapturer.CameraSource.BACK_CAMERA;
-            WritableMap event = new WritableNativeMap();
-            event.putBoolean("isBackCamera", isBackCamera);
-            pushEvent(CustomTwilioVideoView.this, ON_CAMERA_SWITCHED, event);
+            final boolean isBackCamera = isCurrentCameraSourceBackFacing();
+            if (frontFacingDevice != null && (isBackCamera || backFacingDevice == null)) {
+                cameraCapturer.switchCamera(frontFacingDevice);
+                cameraType = CustomTwilioVideoView.FRONT_CAMERA_TYPE;
+            } else {
+                cameraCapturer.switchCamera(backFacingDevice);
+                cameraType = CustomTwilioVideoView.BACK_CAMERA_TYPE;
+            }
         }
     }
 
-    public void toggleVideo(boolean enabled, ReadableMap cameraSettings) {
+    public void toggleVideo(boolean enabled) {
+      isVideoEnabled = enabled;
 
-        if (cameraSettings != null) {
-            if (cameraSettings.hasKey("maxDimensions")) {
-                this.maxCaptureDimensions = parseDimensionsString(cameraSettings.getString("maxDimensions"));
-            }
-
-            if (cameraSettings.hasKey("maxFPS")) {
-                this.maxCaptureFPS = cameraSettings.getInt("maxFPS");
-            }
-        }
-
-        if (this.maxCaptureDimensions == null) {
-            this.maxCaptureDimensions = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_RESOLUTION;
-        }
-
-        if (this.maxCaptureFPS < 1) {
-            this.maxCaptureFPS = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_FPS;;
-        }
-
-        if (enabled && localVideoTrack == null) {
-            createLocalVideo(enabled);
-            if (localParticipant != null) {
-                localParticipant.publishTrack(localVideoTrack);
+        if (cameraCapturer == null && enabled) {
+            String fallbackCameraType = cameraType == null ? CustomTwilioVideoView.FRONT_CAMERA_TYPE : cameraType;
+            boolean createVideoStatus = createLocalVideo(true, fallbackCameraType);
+            if (!createVideoStatus) {
+                Log.d("RNTwilioVideo", "Failed to create local video");
+                return;
             }
         }
-        
-        isVideoEnabled = enabled;
+
         if (localVideoTrack != null) {
             localVideoTrack.enable(enabled);
 
@@ -861,12 +640,12 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     public void toggleSoundSetup(boolean speaker){
-        AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-        if(speaker){
-            audioManager.setSpeakerphoneOn(true);
-        } else {
-            audioManager.setSpeakerphoneOn(false);
-        }
+      AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+      if(speaker){
+        audioManager.setSpeakerphoneOn(true);
+      } else {
+        audioManager.setSpeakerphoneOn(false);
+      }
     }
 
     public void toggleAudio(boolean enabled) {
@@ -897,34 +676,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                     }
                 }
             }
-        }
-    }
-
-    public void setTrackPriority(String trackSid, String trackPriorityString) {
-        TrackPriority priority = this.parsePriorityString(trackPriorityString);
-
-        for (RemoteParticipant participant : room.getRemoteParticipants()) {
-            for (RemoteVideoTrackPublication publication : participant.getRemoteVideoTracks()) {
-                RemoteVideoTrack track = publication.getRemoteVideoTrack();
-                if (track == null) {
-                    continue;
-                }
-                if (publication.getTrackSid().equals(trackSid)) {
-                    track.setPriority(priority);
-                }
-            }
-        }
-    }
-
-    public void toggleStereo(boolean enabled) {
-        Log.d(TAG, "toggleStereo " + enabled);
-
-        if (room != null) {
-            setAudioFocus(false);
-
-            stereoMode = enabled;
-
-            setAudioFocus(true);
         }
     }
 
@@ -1076,6 +827,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 }
                 participantsArray.pushMap(buildParticipant(localParticipant));
                 event.putArray("participants", participantsArray);
+                event.putMap("localParticipant", buildParticipant(localParticipant));
 
                 pushEvent(CustomTwilioVideoView.this, ON_CONNECTED, event);
 
@@ -1090,8 +842,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
             @Override
             public void onConnectFailure(Room room, TwilioException e) {
-                setAudioFocus(false);
-
                 WritableMap event = new WritableNativeMap();
                 event.putString("roomName", room.getName());
                 event.putString("roomSid", room.getSid());
@@ -1114,12 +864,12 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 WritableMap event = new WritableNativeMap();
 
                 if (localParticipant != null) {
-                    event.putString("participant", localParticipant.getIdentity());
+                  event.putString("participant", localParticipant.getIdentity());
                 }
                 event.putString("roomName", room.getName());
                 event.putString("roomSid", room.getSid());
                 if (e != null) {
-                    event.putString("error", e.getMessage());
+                  event.putString("error", e.getMessage());
                 }
                 pushEvent(CustomTwilioVideoView.this, ON_DISCONNECTED, event);
 
@@ -1190,16 +940,16 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         remoteParticipant.setListener(mediaListener());
 
         for (final RemoteDataTrackPublication remoteDataTrackPublication :
-                remoteParticipant.getRemoteDataTracks()) {
-            /*
-             * Data track messages are received on the thread that calls setListener. Post the
-             * invocation of setting the listener onto our dedicated data track message thread.
-             */
-            if (remoteDataTrackPublication.isTrackSubscribed()) {
-                dataTrackMessageThreadHandler.post(() -> addRemoteDataTrack(remoteParticipant,
-                        remoteDataTrackPublication.getRemoteDataTrack()));
-            }
-        }
+              remoteParticipant.getRemoteDataTracks()) {
+          /*
+            * Data track messages are received on the thread that calls setListener. Post the
+            * invocation of setting the listener onto our dedicated data track message thread.
+            */
+          if (remoteDataTrackPublication.isTrackSubscribed()) {
+              dataTrackMessageThreadHandler.post(() -> addRemoteDataTrack(remoteParticipant,
+                      remoteDataTrackPublication.getRemoteDataTrack()));
+          }
+      }
     }
 
     /*
@@ -1226,15 +976,15 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         return new RemoteParticipant.Listener() {
             @Override
             public void onAudioTrackSubscribed(RemoteParticipant participant, RemoteAudioTrackPublication publication, RemoteAudioTrack audioTrack) {
-                audioTrack.enablePlayback(enableRemoteAudio);
-                WritableMap event = buildParticipantVideoEvent(participant, publication);
-                pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_ADDED_AUDIO_TRACK, event);
+              audioTrack.enablePlayback(enableRemoteAudio);
+              WritableMap event = buildParticipantVideoEvent(participant, publication);
+              pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_ADDED_AUDIO_TRACK, event);
             }
 
             @Override
             public void onAudioTrackUnsubscribed(RemoteParticipant participant, RemoteAudioTrackPublication publication, RemoteAudioTrack audioTrack) {
-                WritableMap event = buildParticipantVideoEvent(participant, publication);
-                pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_AUDIO_TRACK, event);
+              WritableMap event = buildParticipantVideoEvent(participant, publication);
+              pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_AUDIO_TRACK, event);
             }
 
             @Override
@@ -1253,15 +1003,15 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
             @Override
             public void onDataTrackSubscribed(RemoteParticipant remoteParticipant, RemoteDataTrackPublication remoteDataTrackPublication, RemoteDataTrack remoteDataTrack) {
-                WritableMap event = buildParticipantDataEvent(remoteParticipant);
-                pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_ADDED_DATA_TRACK, event);
-                dataTrackMessageThreadHandler.post(() -> addRemoteDataTrack(remoteParticipant, remoteDataTrack));
+                 WritableMap event = buildParticipantDataEvent(remoteParticipant, remoteDataTrackPublication);
+                 pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_ADDED_DATA_TRACK, event);
+                 dataTrackMessageThreadHandler.post(() -> addRemoteDataTrack(remoteParticipant, remoteDataTrack));
             }
 
             @Override
-            public void onDataTrackUnsubscribed(RemoteParticipant remoteParticipant, RemoteDataTrackPublication publication, RemoteDataTrack remoteDataTrack) {
-                WritableMap event = buildParticipantDataEvent(remoteParticipant);
-                pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_DATA_TRACK, event);
+            public void onDataTrackUnsubscribed(RemoteParticipant remoteParticipant, RemoteDataTrackPublication remoteDataTrackPublication, RemoteDataTrack remoteDataTrack) {
+                 WritableMap event = buildParticipantDataEvent(remoteParticipant, remoteDataTrackPublication);
+                 pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_DATA_TRACK, event);
             }
 
             @Override
@@ -1397,24 +1147,17 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         return participantMap;
     }
 
-
-    private WritableMap buildParticipantDataEvent(Participant participant) {
-        WritableMap participantMap = buildParticipant(participant);
-        WritableMap participantMap2 = buildParticipant(participant);
-
-        WritableMap event = new WritableNativeMap();
-        event.putMap("participant", participantMap);
-        event.putMap("track", participantMap2);
-        return event;
-    }
-
-    private WritableMap buildParticipantVideoEvent(Participant participant, TrackPublication publication) {
-        WritableMap participantMap = buildParticipant(participant);
-
+    private WritableMap buildTrack(TrackPublication publication) {
         WritableMap trackMap = new WritableNativeMap();
         trackMap.putString("trackSid", publication.getTrackSid());
         trackMap.putString("trackName", publication.getTrackName());
         trackMap.putBoolean("enabled", publication.isTrackEnabled());
+        return trackMap;
+    }
+
+    private WritableMap buildParticipantDataEvent(Participant participant, TrackPublication publication) {
+        WritableMap participantMap = buildParticipant(participant);
+        WritableMap trackMap = buildTrack(publication);
 
         WritableMap event = new WritableNativeMap();
         event.putMap("participant", participantMap);
@@ -1422,9 +1165,20 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         return event;
     }
 
-    private WritableMap buildDataTrackEvent(String message) {
+    private WritableMap buildParticipantVideoEvent(Participant participant, TrackPublication publication) {
+        WritableMap participantMap = buildParticipant(participant);
+        WritableMap trackMap = buildTrack(publication);
+
+        WritableMap event = new WritableNativeMap();
+        event.putMap("participant", participantMap);
+        event.putMap("track", trackMap);
+        return event;
+    }
+
+    private WritableMap buildDataTrackEvent(RemoteDataTrack remoteDataTrack, String message) {
         WritableMap event = new WritableNativeMap();
         event.putString("message", message);
+        event.putString("trackSid", remoteDataTrack.getSid());
         return event;
     }
 
@@ -1438,16 +1192,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_VIDEO_TRACK, event);
     }
     // ===== EVENTS TO RN ==========================================================================
-    /**
-     * Dispatch custom event (`TwilioEvent`) to avoid error 
-     * `Caused by: java.lang.RuntimeException: Cannot convert argument of type class com.twiliorn.library.CustomTwilioVideoView`
-     * github.com/senseobservationsystems/goalie-2-mobile-app/issues/3416
-     */
+
     void pushEvent(View view, String name, WritableMap data) {
-        ReactContext context= (ReactContext) view.getContext();
-        EventDispatcher eventDispatcher =
-                context.getNativeModule(UIManagerModule.class).getEventDispatcher();
-        eventDispatcher.dispatchEvent(new TwilioEvent(view.getId(),name,data));
+        eventEmitter.receiveEvent(view.getId(), name, data);
     }
 
     public static void registerPrimaryVideoView(PatchedVideoView v, String trackSid) {
@@ -1460,9 +1207,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                         continue;
                     }
                     if (publication.getTrackSid().equals(trackSid)) {
-                        track.addRenderer(v);
+                        track.addSink(v);
                     } else {
-                        track.removeRenderer(v);
+                        track.removeSink(v);
                     }
                 }
             }
@@ -1472,9 +1219,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     public static void registerThumbnailVideoView(PatchedVideoView v) {
         thumbnailVideoView = v;
         if (localVideoTrack != null) {
-            localVideoTrack.addRenderer(v);
+            localVideoTrack.addSink(v);
         }
-        setThumbnailMirrorOnStart(v);
+        setThumbnailMirror();
     }
 
     private RemoteDataTrack.Listener remoteDataTrackListener() {
@@ -1488,7 +1235,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
             @Override
             public void onMessage(RemoteDataTrack remoteDataTrack, String message) {
-                WritableMap event = buildDataTrackEvent(message);
+                WritableMap event = buildDataTrackEvent(remoteDataTrack, message);
                 pushEvent(CustomTwilioVideoView.this, ON_DATATRACK_MESSAGE_RECEIVED, event);
             }
         };

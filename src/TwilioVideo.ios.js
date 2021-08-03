@@ -11,7 +11,8 @@ import PropTypes from 'prop-types'
 import { NativeModules, NativeEventEmitter, View } from 'react-native'
 
 const { TWVideoModule } = NativeModules
-export default class extends Component {
+
+export default class TwilioVideo extends Component {
   static propTypes = {
     /**
      * Flag that enables screen sharing RCTRootView instead of camera capture
@@ -149,6 +150,12 @@ export default class extends Component {
      * @param {{ participant, room }} dominant participant
      */
     onDominantSpeakerDidChange: PropTypes.func,
+    /**
+     * Whether or not video should be automatically initialized upon mounting
+     * of this component. Defaults to true. If set to false, any use of the
+     * camera will require calling `_startLocalVideo`.
+     */
+    autoInitializeCamera: PropTypes.bool,
     ...View.propTypes
   }
 
@@ -157,15 +164,13 @@ export default class extends Component {
 
     this._subscriptions = []
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
-    
-    this.setStereoEnabled = this.setStereoEnabled.bind(this)
-    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
-    this.usesCustomAudioDevice = true;
   }
 
-  componentWillMount () {
+  componentDidMount () {
     this._registerEvents()
-    this._startLocalVideo(false)
+    if (this.props.autoInitializeCamera !== false) {
+      this._startLocalVideo()
+    }
     this._startLocalAudio()
   }
 
@@ -191,11 +196,9 @@ export default class extends Component {
   }
 
   /**
-   * Enable or disable local video.
-   * NOTE: cameraSettings are ignored on iOS
+   * Enable or disable local video
    */
-  setLocalVideoEnabled (enabled, cameraSettings) {
-    this._startLocalVideo(enabled)
+  setLocalVideoEnabled (enabled) {
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -207,23 +210,7 @@ export default class extends Component {
   }
 
   /**
-   * Enable or disable stereo mode
-   */
-  setStereoEnabled (enabled) {
-    return TWVideoModule.setStereoEnabled(enabled)
-  }
-
-  /**
-   * Specifies the priority a remote participants video track should get
-   * @param {*} trackSid the SID of the track setting the priority for
-   * @param {*} trackPriority the priority of the track. Can be low, standard, high or null
-   */
-  setTrackPriority (trackSid, trackPriority) {
-    TWVideoModule.setTrackPriority(trackSid, trackPriority)
-  }
-
-  /**
-   * Flip between the front and back camera
+   * Filp between the front and back camera
    */
   flipCamera () {
     TWVideoModule.flipCamera()
@@ -247,14 +234,28 @@ export default class extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
-   * @param  {boolean} enableVideo Don't start video unless it's necessary
-   * @param  {object} encodingParameters Control Encoding config
+   * @param  {String} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
-   * * @param  {Boolean} dominantSpeakerEnabled Report network quality of participants
-   * * @param  {object} bandwidthProfileOptions Report network quality of participants
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false, dominantSpeakerEnabled = false, bandwidthProfileOptions = null }) {
-    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting, dominantSpeakerEnabled, bandwidthProfileOptions);
+  connect ({
+    roomName,
+    accessToken,
+    cameraType = 'front',
+    enableAudio = true,
+    enableVideo = true,
+    encodingParameters = null,
+    enableNetworkQualityReporting = false,
+    dominantSpeakerEnabled = false
+  }) {
+    TWVideoModule.connect(accessToken,
+      roomName,
+      enableAudio,
+      enableVideo,
+      encodingParameters,
+      enableNetworkQualityReporting,
+      dominantSpeakerEnabled,
+      cameraType
+    )
   }
 
   /**
@@ -300,9 +301,8 @@ export default class extends Component {
     TWVideoModule.sendString(message)
   }
 
-  _startLocalVideo (enabled) {
-    const screenShare = this.props.screenShare || false
-    TWVideoModule.startLocalVideo(enabled)
+  _startLocalVideo () {
+    TWVideoModule.startLocalVideo()
   }
 
   _stopLocalVideo () {
@@ -310,7 +310,7 @@ export default class extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
+    TWVideoModule.startLocalAudio()
   }
 
   _stopLocalAudio () {
