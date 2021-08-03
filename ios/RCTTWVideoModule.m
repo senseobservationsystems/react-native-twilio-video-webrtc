@@ -36,11 +36,13 @@ static NSString* cameraDidStopRunning         = @"cameraDidStopRunning";
 static NSString* statsReceived                = @"statsReceived";
 static NSString* networkQualityLevelsChanged  = @"networkQualityLevelsChanged";
 
+static RCTTWCustomAudioDevice* GLOBAL_AUDIO_DEVICE = nil;
+
 static const CMVideoDimensions kRCTTWVideoAppCameraSourceDimensions = (CMVideoDimensions){900, 720};
 
 static const int32_t kRCTTWVideoCameraSourceFrameRate = 15;
 
-TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDevice *device, CMVideoDimensions targetSize) {
+TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDevice *device, CMVideoDimensions targetSize, NSUInteger targetFps) {
     TVIVideoFormat *selectedFormat = nil;
     // Ordered from smallest to largest.
     NSOrderedSet<TVIVideoFormat *> *formats = [TVICameraSource supportedFormatsForDevice:device];
@@ -52,8 +54,9 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
         selectedFormat = format;
         // ^ Select whatever is available until we find one we like and short-circuit
         CMVideoDimensions dimensions = format.dimensions;
+        NSUInteger fps = format.frameRate;
 
-        if (dimensions.width >= targetSize.width && dimensions.height >= targetSize.height) {
+        if (dimensions.width >= targetSize.width && dimensions.height >= targetSize.height && fps >= targetFps) {
             break;
         }
     }
@@ -81,6 +84,7 @@ RCT_EXPORT_MODULE();
 
 - (void)dealloc {
   [self clearCameraInstance];
+  // [self stopLocalAudio]; // TODO ND
 }
 
 - (dispatch_queue_t)methodQueue {
@@ -164,7 +168,11 @@ RCT_EXPORT_METHOD(setRemoteAudioPlayback:(NSString *)participantSid enabled:(BOO
     }
 }
 
-RCT_EXPORT_METHOD(startLocalVideo) {
+RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
+    if (!enabled || self.localVideoTrack != nil) {
+        return;
+    }
+
   TVICameraSourceOptions *options = [TVICameraSourceOptions optionsWithBlock:^(TVICameraSourceOptionsBuilder * _Nonnull builder) {
 
   }];
@@ -173,6 +181,11 @@ RCT_EXPORT_METHOD(startLocalVideo) {
       return;
   }
   self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.camera enabled:NO name:@"camera"];
+
+  TVILocalParticipant *localParticipant = self.room.localParticipant;
+  if (localParticipant != nil && self.localVideoTrack != nil) {
+      [localParticipant publishVideoTrack:self.localVideoTrack];
+  }
 }
 
 - (void)startCameraCapture:(NSString *)cameraType {
@@ -198,11 +211,25 @@ RCT_EXPORT_METHOD(startLocalVideo) {
   }];
 }
 
-RCT_EXPORT_METHOD(startLocalAudio) {
+RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+
+    // If this is enabled we use our custom Twilio Audio Device for audio rendering
+    if (useCustomAudioDevice) {
+        if (GLOBAL_AUDIO_DEVICE == nil) {
+            GLOBAL_AUDIO_DEVICE = [[RCTTWCustomAudioDevice alloc] init];
+
+            TwilioVideoSDK.audioDevice = GLOBAL_AUDIO_DEVICE;
+            TwilioStereoTonePlayer.audioDevice = GLOBAL_AUDIO_DEVICE;
+        }
+    }
+
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil enabled:YES name:@"microphone"];
 }
 
+// TODO got to here
+
 RCT_EXPORT_METHOD(stopLocalVideo) {
+    self.localVideoTrack = nil;
     [self clearCameraInstance];
 }
 

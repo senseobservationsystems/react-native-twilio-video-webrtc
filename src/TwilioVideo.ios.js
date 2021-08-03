@@ -173,8 +173,7 @@ export default class TwilioVideo extends Component {
   componentDidMount () {
     this._registerEvents()
     if (this.props.autoInitializeCamera !== false) {
-      this._startLocalVideo()
-      // this._startLocalVideo(false) // TODO ND
+      this._startLocalVideo(false)
     }
     this._startLocalAudio()
   }
@@ -329,8 +328,7 @@ export default class TwilioVideo extends Component {
   }
 
   _startLocalVideo (enabled) {
-    TWVideoModule.startLocalVideo()
-    // TWVideoModule.startLocalVideo(enabled) // TODO ND
+    TWVideoModule.startLocalVideo(enabled)
   }
 
   _stopLocalVideo () {
@@ -338,8 +336,7 @@ export default class TwilioVideo extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio()
-    // TWVideoModule.startLocalAudio(this.usesCustomAudioDevice) // TODO ND
+    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
   }
 
   _stopLocalAudio () {
