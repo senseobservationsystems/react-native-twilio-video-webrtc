@@ -273,8 +273,6 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
   resolve(@(enabled));
 }
 
-// TODO got to here
-
 // set a default for setting local video enabled
 - (bool)_setLocalVideoEnabled:(bool)enabled {
     return [self _setLocalVideoEnabled:enabled cameraType:@"front"];
@@ -310,6 +308,7 @@ RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithRes
     
   resolve(@(enabled));
 }
+
 
 RCT_EXPORT_METHOD(flipCamera) {
     if (self.camera) {
@@ -539,7 +538,7 @@ RCT_EXPORT_METHOD(getStats) {
         
         if (bandwidthProfileOptions[@"maxTracks"]) {
             NSNumber *numberValue = @([bandwidthProfileOptions[@"maxTracks"] integerValue]);
-
+            
             if (numberValue > 0) {
                 builder.maxTracks = numberValue;
                 NSLog(@"BandwidthProfile - maxTracks: %@", numberValue);
@@ -547,7 +546,7 @@ RCT_EXPORT_METHOD(getStats) {
                 NSLog(@"maxTracks cant be less than 1. Ignoring.");
             }
         }
-
+        
         if (bandwidthProfileOptions[@"maxSubscriptionBitrate"]) {
             NSNumber *numberValue = @([bandwidthProfileOptions[@"maxSubscriptionBitrate"] integerValue]);
             
@@ -631,9 +630,9 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName 
       builder.networkQualityEnabled = true;
       builder.networkQualityConfiguration = [ [TVINetworkQualityConfiguration alloc] initWithLocalVerbosity:TVINetworkQualityVerbosityMinimal remoteVerbosity:TVINetworkQualityVerbosityMinimal];
     }
-
+      
     builder.bandwidthProfileOptions = [[TVIBandwidthProfileOptions alloc] initWithVideoOptions:videoBandwidthProfile];
-
+      
   }];
 
   self.room = [TwilioVideoSDK connectWithOptions:connectOptions delegate:self];
