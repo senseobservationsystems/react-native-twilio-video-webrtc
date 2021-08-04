@@ -280,7 +280,7 @@ export default class TwilioVideo extends Component {
       enableNetworkQualityReporting,
       dominantSpeakerEnabled,
       cameraType,
-      // bandwidthProfileOptions // TODO ND
+      bandwidthProfileOptions
     )
   }
 

@@ -608,9 +608,10 @@ RCT_EXPORT_METHOD(getStats) {
     }];
 }
 
-// TODO got to here
+RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableAudio:(BOOL *)enableAudio enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled cameraType:(NSString *)cameraType bandwidthProfileOptions:(NSDictionary *)bandwidthProfileOptions) {
+  [self enableLocalVideoAtCreationTime: enableVideo];
+  TVIVideoBandwidthProfileOptions* videoBandwidthProfile = [self prepareBandwidthProfile:bandwidthProfileOptions];
 
-RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableAudio:(BOOL *)enableAudio enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled cameraType:(NSString *)cameraType) {
   [self _setLocalVideoEnabled:enableVideo cameraType:cameraType];
   if (self.localAudioTrack) {
     [self.localAudioTrack setEnabled:enableAudio];
@@ -650,6 +651,8 @@ RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName 
       builder.networkQualityConfiguration = [ [TVINetworkQualityConfiguration alloc] initWithLocalVerbosity:TVINetworkQualityVerbosityMinimal remoteVerbosity:TVINetworkQualityVerbosityMinimal];
     }
 
+    builder.bandwidthProfileOptions = [[TVIBandwidthProfileOptions alloc] initWithVideoOptions:videoBandwidthProfile];
+
   }];
 
   self.room = [TwilioVideoSDK connectWithOptions:connectOptions delegate:self];
@@ -663,6 +666,7 @@ RCT_EXPORT_METHOD(sendString:(nonnull NSString *)message) {
 
 RCT_EXPORT_METHOD(disconnect) {
   [self clearCameraInstance];
+  [self stopLocalAudio];
   [self.room disconnect];
 }
 
@@ -670,8 +674,11 @@ RCT_EXPORT_METHOD(disconnect) {
     // We are done with camera
     if (self.camera) {
         [self.camera stopCapture];
+        self.camera = nil;
     }
 }
+
+// TODO got to here
 
 # pragma mark - Common
 
