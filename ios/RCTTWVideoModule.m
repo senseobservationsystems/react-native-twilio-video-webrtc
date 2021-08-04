@@ -236,7 +236,7 @@ RCT_EXPORT_METHOD(stopLocalAudio) {
   // This cleans up only when the app is quit
   
   self.localAudioTrack = nil;
-
+  
   // Make sure the Data Track is cleaned up
   self.localDataTrack = nil;
   self.room = nil;
