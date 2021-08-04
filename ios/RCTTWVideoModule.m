@@ -84,7 +84,7 @@ RCT_EXPORT_MODULE();
 
 - (void)dealloc {
   [self clearCameraInstance];
-  // [self stopLocalAudio]; // TODO ND
+  [self stopLocalAudio];
 }
 
 - (dispatch_queue_t)methodQueue {
@@ -212,17 +212,17 @@ RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
 }
 
 RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
-
+    
     // If this is enabled we use our custom Twilio Audio Device for audio rendering
     if (useCustomAudioDevice) {
         if (GLOBAL_AUDIO_DEVICE == nil) {
             GLOBAL_AUDIO_DEVICE = [[RCTTWCustomAudioDevice alloc] init];
-
+            
             TwilioVideoSDK.audioDevice = GLOBAL_AUDIO_DEVICE;
             TwilioStereoTonePlayer.audioDevice = GLOBAL_AUDIO_DEVICE;
         }
     }
-
+    
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil enabled:YES name:@"microphone"];
 }
 
@@ -232,6 +232,9 @@ RCT_EXPORT_METHOD(stopLocalVideo) {
 }
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
+  // Note: We don't cleanup the global audio device as it stays attached with the instance of WebRTC internally that is never cleaned up
+  // This cleans up only when the app is quit
+  
   self.localAudioTrack = nil;
 
   // Make sure the Data Track is cleaned up
@@ -270,19 +273,7 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
   resolve(@(enabled));
 }
 
-// TODO ND old
-// RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
-//                  rejecter:(RCTPromiseRejectBlock)reject) {
-//   if(self.localVideoTrack != nil){
-//       [self.localVideoTrack setEnabled:enabled];
-//       resolve(@(enabled));
-//   } else if(enabled) {
-//       [self createLocalVideoTrack];
-//       resolve(@true);
-//   } else {
-//       resolve(@false);
-//   }
-// }
+// TODO got to here
 
 // set a default for setting local video enabled
 - (bool)_setLocalVideoEnabled:(bool)enabled {
@@ -309,16 +300,6 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
   bool result = [self _setLocalVideoEnabled:enabled];
   resolve(@(result));
 }
-
-// TODO ND old
-// -(void)createLocalVideoTrack {
-//   [self startLocalVideo:true];
-//   // Publish video so other Room Participants can subscribe
-//   // This check is required when TVICameraSource return nil Eg: simulator
-//   if(self.localVideoTrack != nil){
-//     [self.localParticipant publishVideoTrack:self.localVideoTrack];
-//   }
-// }
 
 RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
     rejecter:(RCTPromiseRejectBlock)reject) {
@@ -489,7 +470,7 @@ RCT_EXPORT_METHOD(getStats) {
     if (priority == nil) {
         return nil;
     }
-
+    
     if ([[priority uppercaseString] isEqualToString:@"LOW"]) {
         return TVITrackPriorityLow;
     } else if ([[priority uppercaseString] isEqualToString:@"STANDARD"]) {
@@ -506,27 +487,27 @@ RCT_EXPORT_METHOD(getStats) {
     if (dimension == nil) {
         return nil;
     }
-
+    
     NSArray* dimensionArray = [dimension componentsSeparatedByString:@"x"];
     if ([dimensionArray count] != 2) {
         NSLog(@"Malformed dimension. Ignoring: %@", dimension);
         return nil;
     }
-
+    
     unsigned int width = [[dimensionArray objectAtIndex:0] unsignedIntValue];
     unsigned int height = [[dimensionArray objectAtIndex:1] unsignedIntValue];
-
+    
     return [TVIVideoDimensions dimensionsWithWidth:width height:height];
 }
 
 -(TVIVideoBandwidthProfileOptions*)prepareBandwidthProfile:(NSDictionary *)bandwidthProfileOptions {
     return [TVIVideoBandwidthProfileOptions optionsWithBlock:^(TVIVideoBandwidthProfileOptionsBuilder * _Nonnull builder) {
-
+    
         if (bandwidthProfileOptions[@"mode"]) {
             TVIBandwidthProfileMode mode;
-
+            
             NSString *comparisonString = [(NSString *)[bandwidthProfileOptions objectForKey:@"mode"] uppercaseString];
-
+            
             if ([comparisonString isEqualToString:@"GRID"]) {
                 mode = TVIBandwidthProfileModeGrid;
             } else if ([comparisonString isEqualToString:@"COLLABORATION"]) {
@@ -534,16 +515,16 @@ RCT_EXPORT_METHOD(getStats) {
             } else if ([comparisonString isEqualToString:@"PRESENTATION"]) {
                 mode = TVIBandwidthProfileModePresentation;
             }
-
+            
             NSLog(@"BandwidthProfile - mode: %@", mode);
             builder.mode = mode;
         }
-
+        
         if (bandwidthProfileOptions[@"trackSwitchOffMode"]) {
             TVITrackSwitchOffMode mode;
-
+            
             NSString *comparisonString = [(NSString *)[bandwidthProfileOptions objectForKey:@"trackSwitchOffMode"] uppercaseString];
-
+            
             if ([comparisonString isEqualToString:@"DISABLED"]) {
                 mode = TVITrackSwitchOffModeDisabled;
             } else if ([comparisonString isEqualToString:@"PREDICTED"]) {
@@ -551,11 +532,11 @@ RCT_EXPORT_METHOD(getStats) {
             } else if ([comparisonString isEqualToString:@"DETECTED"]) {
                 mode = TVITrackSwitchOffModeDetected;
             }
-
+            
             builder.trackSwitchOffMode = mode;
             NSLog(@"BandwidthProfile - trackSwitchOffMode: %@", mode);
         }
-
+        
         if (bandwidthProfileOptions[@"maxTracks"]) {
             NSNumber *numberValue = @([bandwidthProfileOptions[@"maxTracks"] integerValue]);
 
@@ -569,7 +550,7 @@ RCT_EXPORT_METHOD(getStats) {
 
         if (bandwidthProfileOptions[@"maxSubscriptionBitrate"]) {
             NSNumber *numberValue = @([bandwidthProfileOptions[@"maxSubscriptionBitrate"] integerValue]);
-
+            
             if (numberValue > 0) {
                 builder.maxSubscriptionBitrate = numberValue;
                 NSLog(@"BandwidthProfile - maxSubscriptionBitrate: %@", numberValue);
@@ -577,32 +558,32 @@ RCT_EXPORT_METHOD(getStats) {
                 NSLog(@"maxSubscriptionBitrate cant be less than 1. Ignoring.");
             }
         }
-
+        
         if (bandwidthProfileOptions[@"dominantSpeakerPriority"]) {
             builder.dominantSpeakerPriority = [self parsePriorityString:(NSString *)[bandwidthProfileOptions objectForKey:@"dominantSpeakerPriority"]];
             NSLog(@"BandwidthProfile - dominantSpeakerPriority: %@", builder.dominantSpeakerPriority);
         }
-
+        
         if (bandwidthProfileOptions[@"renderDimensions"]) {
             NSDictionary *renderDimensionsDict = [bandwidthProfileOptions objectForKey:@"renderDimensions"];
-
+            
             TVIVideoRenderDimensions *dimensions = [TVIVideoRenderDimensions alloc];
-
+            
             if (renderDimensionsDict[@"low"]) {
                 dimensions.low = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"low"]];
                 NSLog(@"BandwidthProfile - renderDimensions - low: %lux%lu", (unsigned long)dimensions.low.width, (unsigned long)dimensions.low.height);
             }
-
+            
             if (renderDimensionsDict[@"standard"]) {
                 dimensions.standard = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"standard"]];
                 NSLog(@"BandwidthProfile - renderDimensions - standard: %lux%lu", (unsigned long)dimensions.standard.width, (unsigned long)dimensions.standard.height);
             }
-
+            
             if (renderDimensionsDict[@"high"]) {
                 dimensions.high = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"high"]];
                 NSLog(@"BandwidthProfile - renderDimensions - high: %lux%lu", (unsigned long)dimensions.high.width, (unsigned long)dimensions.high.height);
             }
-
+            
             builder.renderDimensions = dimensions;
         }
     }];
