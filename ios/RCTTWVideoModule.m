@@ -226,15 +226,17 @@ RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil enabled:YES name:@"microphone"];
 }
 
-// TODO got to here
-
 RCT_EXPORT_METHOD(stopLocalVideo) {
-    self.localVideoTrack = nil;
-    [self clearCameraInstance];
+  self.localVideoTrack = nil;
+  [self clearCameraInstance];
 }
 
 RCT_EXPORT_METHOD(stopLocalAudio) {
   self.localAudioTrack = nil;
+
+  // Make sure the Data Track is cleaned up
+  self.localDataTrack = nil;
+  self.room = nil;
 }
 
 RCT_EXPORT_METHOD(publishLocalVideo) {
@@ -268,6 +270,19 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
   resolve(@(enabled));
 }
 
+// TODO ND old method
+// RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
+//                  rejecter:(RCTPromiseRejectBlock)reject) {
+//   if(self.localVideoTrack != nil){
+//       [self.localVideoTrack setEnabled:enabled];
+//       resolve(@(enabled));
+//   } else if(enabled) {
+//       [self createLocalVideoTrack];
+//       resolve(@true);
+//   } else {
+//       resolve(@false);
+//   }
+// }
 
 // set a default for setting local video enabled
 - (bool)_setLocalVideoEnabled:(bool)enabled {
@@ -293,6 +308,26 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
                  rejecter:(RCTPromiseRejectBlock)reject) {
   bool result = [self _setLocalVideoEnabled:enabled];
   resolve(@(result));
+}
+
+// TODO ND old method
+// -(void)createLocalVideoTrack {
+//   [self startLocalVideo:true];
+//   // Publish video so other Room Participants can subscribe
+//   // This check is required when TVICameraSource return nil Eg: simulator
+//   if(self.localVideoTrack != nil){
+//     [self.localParticipant publishVideoTrack:self.localVideoTrack];
+//   }
+// }
+
+RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
+    rejecter:(RCTPromiseRejectBlock)reject) {
+    
+    if (GLOBAL_AUDIO_DEVICE != NULL) {
+        [GLOBAL_AUDIO_DEVICE makeStereo:enabled];
+    }
+    
+  resolve(@(enabled));
 }
 
 RCT_EXPORT_METHOD(flipCamera) {
@@ -328,6 +363,21 @@ RCT_EXPORT_METHOD(toggleSoundSetup:(BOOL)speaker) {
     NSLog(@"AVAudiosession overrideOutputAudioPort %@",error);
   }
 }
+
+RCT_EXPORT_METHOD(setTrackPriority:(NSString *)trackSid trackPriority:(NSString *)trackPriority) {
+    for (TVIRemoteParticipant *participant in [self.room remoteParticipants]) {
+        if (participant) {
+            for (TVIRemoteVideoTrackPublication *publication in participant.remoteVideoTracks) {
+              if ([publication.trackSid isEqualToString:trackSid]) {
+                  // TVITrackPriority priority = [self parsePriorityString:trackPriority]; // TODO ND
+                  // [publication.remoteTrack setPriority:priority];
+              }
+            }
+        }
+    }
+}
+
+// TODO got to here
 
 -(void)convertBaseTrackStats:(TVIBaseTrackStats *)stats result:(NSMutableDictionary *)result {
   result[@"trackSid"] = stats.trackSid;
