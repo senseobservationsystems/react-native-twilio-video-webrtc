@@ -270,7 +270,7 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
   resolve(@(enabled));
 }
 
-// TODO ND old method
+// TODO ND old
 // RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
 //                  rejecter:(RCTPromiseRejectBlock)reject) {
 //   if(self.localVideoTrack != nil){
@@ -310,7 +310,7 @@ RCT_REMAP_METHOD(setLocalVideoEnabled, enabled:(BOOL)enabled setLocalVideoEnable
   resolve(@(result));
 }
 
-// TODO ND old method
+// TODO ND old
 // -(void)createLocalVideoTrack {
 //   [self startLocalVideo:true];
 //   // Publish video so other Room Participants can subscribe
@@ -674,11 +674,8 @@ RCT_EXPORT_METHOD(disconnect) {
     // We are done with camera
     if (self.camera) {
         [self.camera stopCapture];
-        self.camera = nil;
     }
 }
-
-// TODO got to here
 
 # pragma mark - Common
 
