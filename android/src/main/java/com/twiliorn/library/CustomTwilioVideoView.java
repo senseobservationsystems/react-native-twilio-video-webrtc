@@ -35,6 +35,7 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.twilio.video.AudioTrackPublication;
+import com.twilio.video.BandwidthProfileOptions;
 import com.twilio.video.BaseTrackStats;
 import com.twilio.video.CameraCapturer;
 import com.twilio.video.ConnectOptions;
@@ -118,6 +119,16 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean maintainVideoTrackInBackground = false;
     private String cameraType = "";
 
+    private static final VideoDimensions DEFAULT_MAX_CAPTURE_RESOLUTION = VideoDimensions.CIF_VIDEO_DIMENSIONS;
+    private static final int DEFAULT_MAX_CAPTURE_FPS = 25;
+    private boolean enableH264Codec = false;
+    private int audioBitrate = -1;
+    private int videoBitrate = -1;
+    private BandwidthProfileOptions bandwidthProfile;
+    private VideoDimensions maxCaptureDimensions = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_RESOLUTION;
+    private int maxCaptureFPS  = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_FPS;
+    private boolean stereoMode = false;
+
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({Events.ON_CAMERA_SWITCHED,
             Events.ON_VIDEO_CHANGED,
@@ -196,6 +207,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean disconnectedFromOnDestroy;
     private IntentFilter intentFilter;
     private BecomingNoisyReceiver myNoisyAudioStreamReceiver;
+
+    // TODO got to here
 
       // Dedicated thread and handler for messages received from a RemoteDataTrack
     private final HandlerThread dataTrackMessageThread =
