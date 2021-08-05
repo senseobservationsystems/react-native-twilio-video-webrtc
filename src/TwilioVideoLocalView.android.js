@@ -11,6 +11,7 @@ import PropTypes from 'prop-types'
 
 const propTypes = {
   ...View.propTypes,
+  applyZOrder: PropTypes.bool,
   /**
    * How the video stream should be scaled to fit its
    * container.
