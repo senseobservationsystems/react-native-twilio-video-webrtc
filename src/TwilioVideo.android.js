@@ -162,7 +162,7 @@ const nativeEvents = {
   sendString: 12,
   publishVideo: 13,
   publishAudio: 14,
-  // toggleStereo: 15 // TODO ND
+  toggleStereo: 15
 }
 
 class CustomTwilioVideoView extends Component {
@@ -203,9 +203,9 @@ class CustomTwilioVideoView extends Component {
       enableNetworkQualityReporting,
       dominantSpeakerEnabled,
       maintainVideoTrackInBackground,
-      cameraType
-      // bandwidthProfileOptions, // TODO ND
-      // encodingParameters // TODO ND
+      cameraType,
+      bandwidthProfileOptions,
+      encodingParameters
     ])
   }
 
@@ -244,8 +244,7 @@ class CustomTwilioVideoView extends Component {
   }
 
   setLocalVideoEnabled (enabled, cameraSettings) {
-    this.runCommand(nativeEvents.toggleVideo, [enabled])
-    // this.runCommand(nativeEvents.toggleVideo, [enabled, cameraSettings]) // TODO ND
+    this.runCommand(nativeEvents.toggleVideo, [enabled, cameraSettings])
     return Promise.resolve(enabled)
   }
 
@@ -265,12 +264,12 @@ class CustomTwilioVideoView extends Component {
   }
 
   setStereoEnabled (enabled) {
-    // this.runCommand(nativeEvents.toggleStereo, [enabled]) // TODO ND
+    this.runCommand(nativeEvents.toggleStereo, [enabled])
     return Promise.resolve(enabled)
   }
   
   setTrackPriority (trackSid, priority) {
-    // this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority]) // TODO ND
+    this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority])
   }
 
   getStats () {
