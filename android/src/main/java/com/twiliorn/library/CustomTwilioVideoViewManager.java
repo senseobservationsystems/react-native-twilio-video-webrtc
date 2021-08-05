@@ -11,6 +11,7 @@ package com.twiliorn.library;
 import android.support.annotation.Nullable;
 
 import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -59,6 +60,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int SEND_STRING = 12;
     private static final int PUBLISH_VIDEO = 13;
     private static final int PUBLISH_AUDIO = 14;
+    // private static final int TOGGLE_STEREO = 15; // TODO ND
+    // private static final int SET_TRACK_PRIORITY = 16; // TODO ND
 
     @Override
     public String getName() {
@@ -83,6 +86,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 boolean dominantSpeakerEnabled = args.getBoolean(6);
                 boolean maintainVideoTrackInBackground = args.getBoolean(7);
                 String cameraType = args.getString(8);
+                // ReadableMap bandwidthProfileOptions = args.getMap(7); // TODO ND
+                // ReadableMap encodingParameters = args.getMap(4); // TODO ND
                 view.connectToRoomWrapper(
                     roomName,
                     accessToken,
@@ -93,6 +98,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                     dominantSpeakerEnabled,
                     maintainVideoTrackInBackground,
                     cameraType
+                    // bandwidthProfileOptions, // TODO ND
+                    // encodingParameters // TODO ND
                   );
                 break;
             case DISCONNECT:
@@ -104,6 +111,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
             case TOGGLE_VIDEO:
                 Boolean videoEnabled = args.getBoolean(0);
                 view.toggleVideo(videoEnabled);
+                // ReadableMap cameraSettings = args.getMap(1); // TODO ND
+                // view.toggleVideo(videoEnabled, cameraSettings); // TODO ND
                 break;
             case TOGGLE_SOUND:
                 Boolean audioEnabled = args.getBoolean(0);
@@ -139,6 +148,15 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
             case PUBLISH_AUDIO:
                 view.publishLocalAudio(args.getBoolean(0));
                 break;
+            // case TOGGLE_STEREO: // TODO ND
+            //     Boolean stereoEnabled = args.getBoolean(0);
+            //     view.toggleStereo(stereoEnabled);
+            //     break;
+            // case SET_TRACK_PRIORITY: // TODO ND
+            //     String trackSid = args.getString(0);
+            //     String trackPriorityString = args.getString(1);
+            //     view.setTrackPriority(trackSid, trackPriorityString);
+            //     break;
         }
     }
 
@@ -196,6 +214,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
                 .put("sendString", SEND_STRING)
+                // .put("setStereo", TOGGLE_STEREO) // TODO ND
+                // .put("setTrackPriority", SET_TRACK_PRIORITY) // TODO ND
                 .build();
     }
 }
