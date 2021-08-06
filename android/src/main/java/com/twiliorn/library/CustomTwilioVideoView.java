@@ -22,6 +22,7 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import kotlin.Unit;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringDef;
 import android.util.Log;
@@ -71,6 +72,8 @@ import com.twilio.video.TrackPublication;
 import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
 import com.twilio.video.VideoDimensions;
+import com.twilio.audioswitch.AudioDevice;
+import com.twilio.audioswitch.AudioSwitch;
 import com.twilio.video.VideoFormat;
 
 import org.webrtc.voiceengine.WebRtcAudioManager;
@@ -208,9 +211,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private IntentFilter intentFilter;
     private BecomingNoisyReceiver myNoisyAudioStreamReceiver;
 
-    // TODO got to here
+    // Audio Management
+    private AudioSwitch audioDeviceSelector;
+    private int savedVolumeControlStream;
 
-      // Dedicated thread and handler for messages received from a RemoteDataTrack
+    // Dedicated thread and handler for messages received from a RemoteDataTrack
     private final HandlerThread dataTrackMessageThread =
             new HandlerThread(DATA_TRACK_MESSAGE_THREAD_NAME);
     private Handler dataTrackMessageThreadHandler;
@@ -233,8 +238,44 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
          * Enable changing the volume using the up/down keys during a conversation
          */
         if (themedReactContext.getCurrentActivity() != null) {
+            savedVolumeControlStream = themedReactContext.getCurrentActivity().getVolumeControlStream();
             themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
         }
+
+        audioDeviceSelector = new AudioSwitch(themedReactContext);
+        audioDeviceSelector.start((audioDevices, currentDevice) -> {
+            // As Audio Switch prioritises Earpiece over Speakerphone, we specify our own device prioritization order int his listener
+
+            AudioDevice bluetoothDevice = null;
+            AudioDevice wiredDevice = null;
+            AudioDevice speakerPhone = null;
+
+            // Loop through all available audio devices and find the last connected bluetooth, wired and speakerphone device
+            for (AudioDevice device : audioDevices) {
+                if (device instanceof AudioDevice.BluetoothHeadset) {
+                    bluetoothDevice = device;
+                } else if (device instanceof AudioDevice.WiredHeadset) {
+                    wiredDevice = device;
+                } else if (device instanceof AudioDevice.Speakerphone) {
+                    speakerPhone = device;
+                }
+            }
+
+            // Select devices based on our order of prioritisation
+            // This means Bluetooth -> Wired Headset -> Speakerphone
+            if (bluetoothDevice != null && !(currentDevice instanceof AudioDevice.BluetoothHeadset)) {
+                audioDeviceSelector.selectDevice(bluetoothDevice);
+            } else if (bluetoothDevice == null && wiredDevice != null && !(currentDevice instanceof AudioDevice.WiredHeadset)) {
+                audioDeviceSelector.selectDevice(wiredDevice);
+            } else if (bluetoothDevice == null && wiredDevice == null && speakerPhone != null && !(currentDevice instanceof AudioDevice.Speakerphone)){
+                audioDeviceSelector.selectDevice(speakerPhone);
+            }
+
+            return Unit.INSTANCE;
+        });
+
+        // TODO got to here
+
         /*
          * Needed for setting/abandoning audio focus during call
          */
