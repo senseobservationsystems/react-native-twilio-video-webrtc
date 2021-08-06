@@ -274,8 +274,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             return Unit.INSTANCE;
         });
 
-        // TODO got to here
-
         /*
          * Needed for setting/abandoning audio focus during call
          */
@@ -291,13 +289,28 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         dataTrackMessageThread.start();
         dataTrackMessageThreadHandler = new Handler(dataTrackMessageThread.getLooper());
 
+        // enable stereo out put from the WebRTCAudio Manager as a default as it doesn't impact the audio
+        tvi.webrtc.voiceengine.WebRtcAudioManager.setStereoOutput(true);
     }
 
     // ===== SETUP =================================================================================
 
+    // TODO ND `VideoConstraints` removed: https://www.twilio.com/docs/video/migrating-5x-6x
+    // private VideoConstraints buildVideoConstraints() {
+    //     Log.d(TAG,"Setting camera constraints. Max Dimensions: "
+    //         + this.maxCaptureDimensions + " - Max FPS: " + this.maxCaptureFPS);
+
+    //     return new VideoConstraints.Builder()
+    //             .maxVideoDimensions(this.maxCaptureDimensions)
+    //             .maxFps(this.maxCaptureFPS)
+    //             .build();
+    // }
+
     private VideoFormat buildVideoFormat() {
         return new VideoFormat(VideoDimensions.CIF_VIDEO_DIMENSIONS, 15);
     }
+
+    // TODO got to here
 
     private CameraCapturer createCameraCaputer(Context context, String cameraId) {
         CameraCapturer newCameraCapturer = null;
