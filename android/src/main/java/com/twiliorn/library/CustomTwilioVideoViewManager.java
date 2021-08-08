@@ -86,8 +86,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 boolean dominantSpeakerEnabled = args.getBoolean(6);
                 boolean maintainVideoTrackInBackground = args.getBoolean(7);
                 String cameraType = args.getString(8);
-                // ReadableMap bandwidthProfileOptions = args.getMap(7); // TODO ND
-                // ReadableMap encodingParameters = args.getMap(4); // TODO ND
+                ReadableMap bandwidthProfileOptions = args.getMap(9);
+                ReadableMap encodingParameters = args.getMap(10);
                 view.connectToRoomWrapper(
                     roomName,
                     accessToken,
@@ -97,9 +97,9 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                     enableNetworkQualityReporting,
                     dominantSpeakerEnabled,
                     maintainVideoTrackInBackground,
-                    cameraType
-                    // bandwidthProfileOptions, // TODO ND
-                    // encodingParameters // TODO ND
+                    cameraType,
+                    bandwidthProfileOptions,
+                    encodingParameters
                   );
                 break;
             case DISCONNECT:
