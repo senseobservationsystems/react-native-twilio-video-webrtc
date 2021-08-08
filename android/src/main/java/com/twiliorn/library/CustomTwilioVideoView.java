@@ -43,6 +43,8 @@ import com.twilio.video.BandwidthProfileOptions;
 import com.twilio.video.BaseTrackStats;
 import com.twilio.video.CameraCapturer;
 import com.twilio.video.ConnectOptions;
+import com.twilio.video.EncodingParameters;
+import com.twilio.video.H264Codec;
 import com.twilio.video.LocalAudioTrack;
 import com.twilio.video.LocalAudioTrackPublication;
 import com.twilio.video.LocalAudioTrackStats;
@@ -774,9 +776,38 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
 
-    // TODO got to here
+    private void setStereoAudioFocus(boolean focus) {
+
+        // Audio is already stereo with default settings on Android < O
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
+        }
+
+        if (focus) {
+            previousAudioMode = audioManager.getMode();
+
+            // Create playback attributes that don't specify voice communication mode to allow stereo playback
+            playbackAttributes = new AudioAttributes.Builder().build();
+
+            // Request audio focus with a stereo mode
+            audioFocusRequest = new AudioFocusRequest
+                    .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(playbackAttributes)
+                    .setAcceptsDelayedFocusGain(true)
+                    .setOnAudioFocusChangeListener(this, handler)
+                    .build();
+            audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            audioManager.setMode(previousAudioMode);
+        }
+    }
 
     private void setAudioFocus(boolean focus) {
+        if (stereoMode) {
+            setStereoAudioFocus(focus);
+            return;
+        } 
         if (focus) {
             previousAudioMode = audioManager.getMode();
             // Request audio focus before making any device switch.
@@ -863,6 +894,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             cameraCapturer = null;
         }
     }
+
+    // TODO got to here
 
     // ===== SEND STRING ON DATA TRACK ======================================================================
     public void sendString(String message) {
