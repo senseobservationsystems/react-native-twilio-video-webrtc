@@ -566,8 +566,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         }
 
         setAudioFocus(enableAudio);
-        connectToRoom();
-        // connectToRoom(enableAudio);// TODO ND uncomment
+        connectToRoom(enableAudio);
     }
 
     // Functions to parse the bandwidth profile map
@@ -719,12 +718,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         return new BandwidthProfileOptions(videoBandwidthProfileOptions);
     }
 
-    // TODO got to here
-
-    public void connectToRoom() {
+    public void connectToRoom(boolean enableAudio) {
         /*
          * Create a VideoClient allowing you to connect to a Room
          */
+        setAudioFocus(enableAudio);
         ConnectOptions.Builder connectOptionsBuilder = new ConnectOptions.Builder(this.accessToken);
 
         if (this.roomName != null) {
@@ -754,8 +752,29 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                      NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL));
          }
 
+        // If we have specified bit rates then use them
+        if (this.audioBitrate >= 0 && this.videoBitrate >= 0) {
+            connectOptionsBuilder.encodingParameters(new EncodingParameters(this.audioBitrate, this.videoBitrate));
+            Log.d(TAG, "Setting max audio rate" + String.valueOf(this.audioBitrate) + " and max video rate: " + String.valueOf(this.videoBitrate));
+        } else {
+            // If we have specified only 1 of the bit rate values
+            if (this.audioBitrate >= 0 || this.videoBitrate >= 0) {
+                // Then warn the user that we are ignoring the value
+                Log.w(TAG, "Ignoring audio or video bitrate as only 1 of them is defined. Audio: " + String.valueOf(this.audioBitrate) + " Video:" + String.valueOf(this.videoBitrate));
+            }
+        }
+
+         if (this.enableH264Codec) {
+             connectOptionsBuilder.preferVideoCodecs(Collections.singletonList(new H264Codec()));
+             Log.d(TAG, "Preferring H264 Codec");
+         }
+
+        connectOptionsBuilder.bandwidthProfile(this.bandwidthProfile);
+
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
+
+    // TODO got to here
 
     private void setAudioFocus(boolean focus) {
         if (focus) {
