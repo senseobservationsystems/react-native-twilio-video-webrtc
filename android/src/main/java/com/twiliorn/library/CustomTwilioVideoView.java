@@ -310,8 +310,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         return new VideoFormat(VideoDimensions.CIF_VIDEO_DIMENSIONS, 15);
     }
 
-    // TODO got to here
-
     private CameraCapturer createCameraCaputer(Context context, String cameraId) {
         CameraCapturer newCameraCapturer = null;
         try {
@@ -358,11 +356,24 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     private boolean createLocalVideo(boolean enableVideo, String cameraType) {
+        // TODO ND old
+        // if (!enableVideo) {
+        //     return true;
         isVideoEnabled = enableVideo;
 
         // Share your camera
+        // TODO ND old
+        // cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.FRONT_CAMERA);
+        // if (cameraCapturer == null){
+        //     cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.BACK_CAMERA);
+        // }
         buildDeviceInfo();
 
+        // TODO ND old
+        // if (cameraCapturer != null && cameraCapturer.getSupportedFormats().size() > 0) {
+        //     localVideoTrack = LocalVideoTrack.create(getContext(), enableVideo, cameraCapturer, buildVideoConstraints());
+        //     if (thumbnailVideoView != null && localVideoTrack != null) {
+        //         localVideoTrack.addRenderer(thumbnailVideoView);
         if (cameraType.equals(CustomTwilioVideoView.FRONT_CAMERA_TYPE)) {
             if (frontFacingDevice != null) {
                 cameraCapturer = this.createCameraCaputer(getContext(), frontFacingDevice);
@@ -370,6 +381,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 // IF the camera is unavailable try the other camera
                 cameraCapturer = this.createCameraCaputer(getContext(), backFacingDevice);
             }
+            // setThumbnailMirrorOnStart(thumbnailVideoView); // TODO ND uncomment
         } else {
             if (backFacingDevice != null) {
                 cameraCapturer = this.createCameraCaputer(getContext(), backFacingDevice);
@@ -424,7 +436,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 }
             }
 
-            themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+            themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL); // TODO ND previously commented-out
 
         }
     }
@@ -452,6 +464,14 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
     @Override
     public void onHostDestroy() {
+        /*
+         * Tear down audio management and restore previous volume stream
+         */
+        audioDeviceSelector.stop();
+        if (themedReactContext != null && themedReactContext.getCurrentActivity() != null) {
+            themedReactContext.getCurrentActivity().setVolumeControlStream(savedVolumeControlStream);
+        }
+
         /*
          * Always disconnect from the room before leaving the Activity to
          * ensure any memory allocated to the Room resource is freed.
@@ -489,6 +509,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     // ====== CONNECTING ===========================================================================
+
+    // TODO got to here
 
     public void connectToRoomWrapper(
             String roomName,
