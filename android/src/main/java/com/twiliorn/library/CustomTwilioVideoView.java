@@ -305,17 +305,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
     // ===== SETUP =================================================================================
 
-    // TODO ND `VideoConstraints` removed: https://www.twilio.com/docs/video/migrating-5x-6x
-    // private VideoConstraints buildVideoConstraints() {
-    //     Log.d(TAG,"Setting camera constraints. Max Dimensions: "
-    //         + this.maxCaptureDimensions + " - Max FPS: " + this.maxCaptureFPS);
-
-    //     return new VideoConstraints.Builder()
-    //             .maxVideoDimensions(this.maxCaptureDimensions)
-    //             .maxFps(this.maxCaptureFPS)
-    //             .build();
-    // }
-
     private VideoFormat buildVideoFormat() {
         return new VideoFormat(VideoDimensions.CIF_VIDEO_DIMENSIONS, 15);
     }
@@ -967,6 +956,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     public void toggleVideo(boolean enabled, ReadableMap cameraSettings) {
+        // ND Check if ready
+        if (cameraCapturer == null) {
+            Log.d("toggleVideo", "not ready");
+            return;
+        }
 
         if (cameraSettings != null) {
             if (cameraSettings.hasKey("maxDimensions")) {
