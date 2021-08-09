@@ -13,6 +13,7 @@ declare module "react-native-twilio-video-webrtc" {
   interface TwilioVideoParticipantViewProps extends ViewProps {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
+    scalesType?: number;
     scaleType?: scaleType;
     applyZOrder?: boolean;
   }
@@ -20,6 +21,7 @@ declare module "react-native-twilio-video-webrtc" {
   interface TwilioVideoLocalViewProps extends ViewProps {
     enabled: boolean;
     ref?: React.Ref<any>;
+    scalesType?: number;
     scaleType?: scaleType;
     applyZOrder?: boolean;
   }

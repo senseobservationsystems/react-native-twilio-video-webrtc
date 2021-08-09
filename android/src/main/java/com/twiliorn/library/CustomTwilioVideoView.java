@@ -1538,6 +1538,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
     // ===== EVENTS TO RN ==========================================================================
     
+    // NOTE upstream original
+    // void pushEvent(View view, String name, WritableMap data) {
+    //     eventEmitter.receiveEvent(view.getId(), name, data);
+    // }
+
     /**
      * Dispatch custom event (`TwilioEvent`) to avoid error 
      * `Caused by: java.lang.RuntimeException: Cannot convert argument of type class com.twiliorn.library.CustomTwilioVideoView`
@@ -1549,11 +1554,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 context.getNativeModule(UIManagerModule.class).getEventDispatcher();
         eventDispatcher.dispatchEvent(new TwilioEvent(view.getId(),name,data));
     }
-
-    // TODO upstream changes
-    // void pushEvent(View view, String name, WritableMap data) {
-    //     eventEmitter.receiveEvent(view.getId(), name, data);
-    // }
 
     public static void registerPrimaryVideoView(PatchedVideoView v, String trackSid) {
         if (room != null) {

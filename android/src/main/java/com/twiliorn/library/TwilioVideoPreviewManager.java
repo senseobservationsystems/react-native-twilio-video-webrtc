@@ -39,7 +39,6 @@ public class TwilioVideoPreviewManager extends SimpleViewManager<TwilioVideoPrev
       }
     }
 
-    // TODO ND deprecated?
     @ReactProp(name = "scalesType")
     public void setScalesType(TwilioVideoPreview view, @Nullable int scalesType) {
         // This props is made specially for nice day to allow double tapping to change the video size.
