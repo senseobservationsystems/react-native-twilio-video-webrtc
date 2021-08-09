@@ -966,10 +966,35 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         }
     }
 
-    // TODO got to here
+    public void toggleVideo(boolean enabled, ReadableMap cameraSettings) {
 
-    public void toggleVideo(boolean enabled) {
-      isVideoEnabled = enabled;
+        if (cameraSettings != null) {
+            if (cameraSettings.hasKey("maxDimensions")) {
+                this.maxCaptureDimensions = parseDimensionsString(cameraSettings.getString("maxDimensions"));
+            }
+
+            if (cameraSettings.hasKey("maxFPS")) {
+                this.maxCaptureFPS = cameraSettings.getInt("maxFPS");
+            }
+        }
+
+        if (this.maxCaptureDimensions == null) {
+            this.maxCaptureDimensions = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_RESOLUTION;
+        }
+
+        if (this.maxCaptureFPS < 1) {
+            this.maxCaptureFPS = CustomTwilioVideoView.DEFAULT_MAX_CAPTURE_FPS;;
+        }
+
+        // TODO ND old
+        // if (enabled && localVideoTrack == null) {
+        //     createLocalVideo(enabled);
+        //     if (localParticipant != null) {
+        //         localParticipant.publishTrack(localVideoTrack);
+        //     }
+        // }
+
+        isVideoEnabled = enabled;
 
         if (cameraCapturer == null && enabled) {
             String fallbackCameraType = cameraType == null ? CustomTwilioVideoView.FRONT_CAMERA_TYPE : cameraType;
@@ -1026,6 +1051,34 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                     }
                 }
             }
+        }
+    }
+
+    public void setTrackPriority(String trackSid, String trackPriorityString) {
+        TrackPriority priority = this.parsePriorityString(trackPriorityString);
+
+        for (RemoteParticipant participant : room.getRemoteParticipants()) {
+            for (RemoteVideoTrackPublication publication : participant.getRemoteVideoTracks()) {
+                RemoteVideoTrack track = publication.getRemoteVideoTrack();
+                if (track == null) {
+                    continue;
+                }
+                if (publication.getTrackSid().equals(trackSid)) {
+                    track.setPriority(priority);
+                }
+            }
+        }
+    }
+
+    public void toggleStereo(boolean enabled) {
+        Log.d(TAG, "toggleStereo " + enabled);
+
+        if (room != null) {
+            setAudioFocus(false);
+
+            stereoMode = enabled;
+
+            setAudioFocus(true);
         }
     }
 
@@ -1192,6 +1245,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
             @Override
             public void onConnectFailure(Room room, TwilioException e) {
+                setAudioFocus(false);
+
                 WritableMap event = new WritableNativeMap();
                 event.putString("roomName", room.getName());
                 event.putString("roomSid", room.getSid());
@@ -1517,6 +1572,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
     private WritableMap buildParticipantVideoEvent(Participant participant, TrackPublication publication) {
         WritableMap participantMap = buildParticipant(participant);
+        // TODO ND old
+        // WritableMap trackMap = new WritableNativeMap();
+        // trackMap.putString("trackSid", publication.getTrackSid());
+        // trackMap.putString("trackName", publication.getTrackName());
+        // trackMap.putBoolean("enabled", publication.isTrackEnabled());
         WritableMap trackMap = buildTrack(publication);
 
         WritableMap event = new WritableNativeMap();
@@ -1542,6 +1602,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         pushEvent(CustomTwilioVideoView.this, ON_PARTICIPANT_REMOVED_VIDEO_TRACK, event);
     }
     // ===== EVENTS TO RN ==========================================================================
+
+    // TODO got to here
 
     void pushEvent(View view, String name, WritableMap data) {
         eventEmitter.receiveEvent(view.getId(), name, data);

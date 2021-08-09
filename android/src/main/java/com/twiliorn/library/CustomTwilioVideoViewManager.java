@@ -110,9 +110,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 break;
             case TOGGLE_VIDEO:
                 Boolean videoEnabled = args.getBoolean(0);
-                view.toggleVideo(videoEnabled);
-                // ReadableMap cameraSettings = args.getMap(1); // TODO ND
-                // view.toggleVideo(videoEnabled, cameraSettings); // TODO ND
+                ReadableMap cameraSettings = args.getMap(1);
+                view.toggleVideo(videoEnabled, cameraSettings);
                 break;
             case TOGGLE_SOUND:
                 Boolean audioEnabled = args.getBoolean(0);
