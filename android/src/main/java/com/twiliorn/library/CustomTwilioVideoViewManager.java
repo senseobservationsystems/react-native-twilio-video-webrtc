@@ -60,8 +60,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int SEND_STRING = 12;
     private static final int PUBLISH_VIDEO = 13;
     private static final int PUBLISH_AUDIO = 14;
-    // private static final int TOGGLE_STEREO = 15; // TODO ND
-    // private static final int SET_TRACK_PRIORITY = 16; // TODO ND
+    private static final int TOGGLE_STEREO = 15;
+    private static final int SET_TRACK_PRIORITY = 16;
 
     @Override
     public String getName() {
@@ -147,15 +147,15 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
             case PUBLISH_AUDIO:
                 view.publishLocalAudio(args.getBoolean(0));
                 break;
-            // case TOGGLE_STEREO: // TODO ND
-            //     Boolean stereoEnabled = args.getBoolean(0);
-            //     view.toggleStereo(stereoEnabled);
-            //     break;
-            // case SET_TRACK_PRIORITY: // TODO ND
-            //     String trackSid = args.getString(0);
-            //     String trackPriorityString = args.getString(1);
-            //     view.setTrackPriority(trackSid, trackPriorityString);
-            //     break;
+            case TOGGLE_STEREO:
+                Boolean stereoEnabled = args.getBoolean(0);
+                view.toggleStereo(stereoEnabled);
+                break;
+            case SET_TRACK_PRIORITY:
+                String trackSid = args.getString(0);
+                String trackPriorityString = args.getString(1);
+                view.setTrackPriority(trackSid, trackPriorityString);
+                break;
         }
     }
 
@@ -213,8 +213,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
                 .put("sendString", SEND_STRING)
-                // .put("setStereo", TOGGLE_STEREO) // TODO ND
-                // .put("setTrackPriority", SET_TRACK_PRIORITY) // TODO ND
+                .put("setStereo", TOGGLE_STEREO)
+                .put("setTrackPriority", SET_TRACK_PRIORITY)
                 .build();
     }
 }
