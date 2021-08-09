@@ -22,7 +22,6 @@ declare module "react-native-twilio-video-webrtc" {
     ref?: React.Ref<any>;
     scaleType?: scaleType;
     applyZOrder?: boolean;
-    onTop?: boolean; // TODO ND deprecated?
   }
 
   export interface Participant {

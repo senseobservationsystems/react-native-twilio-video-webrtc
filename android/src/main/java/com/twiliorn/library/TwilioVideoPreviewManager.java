@@ -39,6 +39,7 @@ public class TwilioVideoPreviewManager extends SimpleViewManager<TwilioVideoPrev
       }
     }
 
+    // TODO ND deprecated?
     @ReactProp(name = "scalesType")
     public void setScalesType(TwilioVideoPreview view, @Nullable int scalesType) {
         // This props is made specially for nice day to allow double tapping to change the video size.
@@ -47,13 +48,6 @@ public class TwilioVideoPreviewManager extends SimpleViewManager<TwilioVideoPrev
         // value of this props changes.
         view.setScalesType(scalesType);
         view.requestLayout();
-    }
-
-    @ReactProp(name = "onTop")
-    public void setOnTop(TwilioVideoPreview view, @Nullable boolean onTop) {
-        if (onTop) {
-            view.applyZOrder(true);
-        }
     }
 
     @ReactProp(name = "applyZOrder", defaultBoolean = true)
