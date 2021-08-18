@@ -168,6 +168,12 @@ declare module "react-native-twilio-video-webrtc" {
     dominantSpeakerEnabled?: boolean;
     enableAudio?: boolean;
     enableVideo?: boolean;
+    encodingParameters?: {
+      enableH264Codec?: boolean;
+      // if audioBitrate OR videoBitrate is provided, you must provide both
+      audioBitrate?: number;
+      videoBitrate?: number;
+    };
     enableRemoteAudio?: boolean;
     enableNetworkQualityReporting?: boolean;
     maintainVideoTrackInBackground?: boolean;
