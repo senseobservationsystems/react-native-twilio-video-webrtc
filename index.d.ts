@@ -2,23 +2,27 @@ declare module "react-native-twilio-video-webrtc" {
   import { ViewProps } from "react-native";
   import React from "react";
 
-  interface TwilioVideoLocalViewProps extends ViewProps {
-    enabled: boolean;
-    scalesType: number;
-    onTop?: boolean;
-    ref?: React.Ref<any>;
-    applyZOrder?: boolean;
-  }
-
   export interface TrackIdentifier {
     participantSid: string;
     videoTrackSid: string;
   }
 
+  type scaleType = "fit" | "fill";
+  type cameraType = "front" | "back";
+
   interface TwilioVideoParticipantViewProps extends ViewProps {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
     scalesType?: number;
+    scaleType?: scaleType;
+    applyZOrder?: boolean;
+  }
+
+  interface TwilioVideoLocalViewProps extends ViewProps {
+    enabled: boolean;
+    ref?: React.Ref<any>;
+    scalesType?: number;
+    scaleType?: scaleType;
     applyZOrder?: boolean;
   }
 
@@ -40,6 +44,13 @@ declare module "react-native-twilio-video-webrtc" {
 
   export type TrackEventCb = (t: TrackEventCbArgs) => void;
 
+  export interface DataTrackEventCbArgs {
+    message: string;
+    trackSid: string;
+  }
+
+  export type DataTrackEventCb = (t: DataTrackEventCbArgs) => void;
+
   interface RoomEventCommonArgs {
     roomName: string;
     roomSid: string;
@@ -51,6 +62,7 @@ declare module "react-native-twilio-video-webrtc" {
 
   type RoomEventArgs = RoomEventCommonArgs & {
     participants: Participant[];
+    localParticipant: Participant;
   };
 
   type ParticipantEventArgs = RoomEventCommonArgs & {
@@ -67,13 +79,20 @@ declare module "react-native-twilio-video-webrtc" {
   export type RoomErrorEventCb = (t: RoomErrorEventArgs) => void;
 
   export type ParticipantEventCb = (p: ParticipantEventArgs) => void;
-
+  
   export type NetworkLevelChangeEventCb = (p: NetworkLevelChangeEventArgs) => void;
+
+  export type DominantSpeakerChangedEventArgs = RoomEventCommonArgs & {
+    participant: Participant;
+  }
+  
+  export type DominantSpeakerChangedCb = (d: DominantSpeakerChangedEventArgs) => void;
 
   export type TwilioVideoProps = ViewProps & {
     onCameraDidStart?: () => void;
     onCameraDidStopRunning?: (err: any) => void;
     onCameraWasInterrupted?: () => void;
+    onDominantSpeakerDidChange?: DominantSpeakerChangedCb;
     onParticipantAddedAudioTrack?: TrackEventCb;
     onParticipantAddedVideoTrack?: TrackEventCb;
     onParticipantDisabledVideoTrack?: TrackEventCb;
@@ -90,10 +109,11 @@ declare module "react-native-twilio-video-webrtc" {
     onRoomParticipantDidConnect?: ParticipantEventCb;
     onRoomParticipantDidDisconnect?: ParticipantEventCb;
     onNetworkQualityLevelsChanged?: NetworkLevelChangeEventCb;
-    onDominantSpeakerDidChange?: ParticipantEventCb;
 
     onStatsReceived?: (data: any) => void;
-    onDataTrackMessageReceived?: (data: { message: string }) => void;
+    onDataTrackMessageReceived?: DataTrackEventCb;
+    // iOS only
+    autoInitializeCamera?: boolean;    
     ref?: React.Ref<any>;
   };
 
@@ -124,9 +144,11 @@ declare module "react-native-twilio-video-webrtc" {
     trackSwitchOffMode?: TrackSwitchOffMode,
   }
 
-  type ConnectParams = {
-    accessToken: string;
+  type iOSConnectParams = {
     roomName?: string;
+    accessToken: string;
+    cameraType?: cameraType;
+    dominantSpeakerEnabled?: boolean;
     enableAudio?: boolean;
     enableVideo?: boolean;
     encodingParameters?: {
@@ -136,7 +158,25 @@ declare module "react-native-twilio-video-webrtc" {
       videoBitrate?: number;
     };
     enableNetworkQualityReporting?: boolean;
+    bandwidthProfileOptions?: BandwidthProfileOptions;
+  };
+
+  type androidConnectParams = {
+    roomName?: string;
+    accessToken: string;
+    cameraType?: cameraType;
     dominantSpeakerEnabled?: boolean;
+    enableAudio?: boolean;
+    enableVideo?: boolean;
+    encodingParameters?: {
+      enableH264Codec?: boolean;
+      // if audioBitrate OR videoBitrate is provided, you must provide both
+      audioBitrate?: number;
+      videoBitrate?: number;
+    };
+    enableRemoteAudio?: boolean;
+    enableNetworkQualityReporting?: boolean;
+    maintainVideoTrackInBackground?: boolean;
     bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
@@ -145,7 +185,7 @@ declare module "react-native-twilio-video-webrtc" {
     setLocalAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setRemoteAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setBluetoothHeadsetConnected: (enabled: boolean) => Promise<boolean>;
-    connect: (options: ConnectParams) => void;
+    connect: (options: iOSConnectParams | androidConnectParams) => void;
     disconnect: () => void;
     flipCamera: () => void;
     toggleSoundSetup: (speaker: boolean) => void;
@@ -155,8 +195,8 @@ declare module "react-native-twilio-video-webrtc" {
     publishLocalVideo: () => void;
     unpublishLocalVideo: () => void;
     sendString: (message: string) => void;
-    setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
     setStereoEnabled: (enabled: boolean) => Promise<boolean>;
+    setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
   }
 
   class TwilioVideoLocalView extends React.Component<
@@ -170,12 +210,12 @@ declare module "react-native-twilio-video-webrtc" {
   export { TwilioVideoLocalView, TwilioVideoParticipantView, TwilioVideo };
 
   export class TwilioStereoTonePlayer {
-      preload: (filename: string) => Promise<boolean>;
-      play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;
-      pause: () => void;
-      setVolume: (volume: number) => void;
-      setPlaybackSpeed: (speed: number) => void;
-      release: (filename: string) => void;
-      terminate: () => void;
+    preload: (filename: string) => Promise<boolean>;
+    play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;
+    pause: () => void;
+    setVolume: (volume: number) => void;
+    setPlaybackSpeed: (speed: number) => void;
+    release: (filename: string) => void;
+    terminate: () => void;
   }
 }

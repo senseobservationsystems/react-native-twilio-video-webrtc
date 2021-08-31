@@ -11,7 +11,8 @@ import PropTypes from 'prop-types'
 import { NativeModules, NativeEventEmitter, View } from 'react-native'
 
 const { TWVideoModule } = NativeModules
-export default class extends Component {
+
+export default class TwilioVideo extends Component {
   static propTypes = {
     /**
      * Flag that enables screen sharing RCTRootView instead of camera capture
@@ -149,6 +150,12 @@ export default class extends Component {
      * @param {{ participant, room }} dominant participant
      */
     onDominantSpeakerDidChange: PropTypes.func,
+    /**
+     * Whether or not video should be automatically initialized upon mounting
+     * of this component. Defaults to true. If set to false, any use of the
+     * camera will require calling `_startLocalVideo`.
+     */
+    autoInitializeCamera: PropTypes.bool,
     ...View.propTypes
   }
 
@@ -163,9 +170,11 @@ export default class extends Component {
     this.usesCustomAudioDevice = true;
   }
 
-  componentWillMount () {
+  componentDidMount () {
     this._registerEvents()
-    this._startLocalVideo(false)
+    if (this.props.autoInitializeCamera !== false) {
+      this._startLocalVideo(false)
+    }
     this._startLocalAudio()
   }
 
@@ -191,11 +200,10 @@ export default class extends Component {
   }
 
   /**
-   * Enable or disable local video.
+   * Enable or disable local video
    * NOTE: cameraSettings are ignored on iOS
    */
-  setLocalVideoEnabled (enabled, cameraSettings) {
-    this._startLocalVideo(enabled)
+   setLocalVideoEnabled (enabled, cameraSettings) {
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -250,11 +258,30 @@ export default class extends Component {
    * @param  {boolean} enableVideo Don't start video unless it's necessary
    * @param  {object} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
-   * * @param  {Boolean} dominantSpeakerEnabled Report network quality of participants
-   * * @param  {object} bandwidthProfileOptions Report network quality of participants
+   * @param  {Boolean} dominantSpeakerEnabled Enable dominant speaker
+   * @param  {object} bandwidthProfileOptions Bandwidth profile options
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false, dominantSpeakerEnabled = false, bandwidthProfileOptions = null }) {
-    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting, dominantSpeakerEnabled, bandwidthProfileOptions);
+  connect ({
+    roomName,
+    accessToken,
+    cameraType = 'front',
+    enableAudio = true,
+    enableVideo = true,
+    encodingParameters = null,
+    enableNetworkQualityReporting = false,
+    dominantSpeakerEnabled = false,
+    bandwidthProfileOptions = null
+  }) {
+    TWVideoModule.connect(accessToken,
+      roomName,
+      enableAudio,
+      enableVideo,
+      encodingParameters,
+      enableNetworkQualityReporting,
+      dominantSpeakerEnabled,
+      cameraType,
+      bandwidthProfileOptions
+    )
   }
 
   /**
@@ -301,7 +328,6 @@ export default class extends Component {
   }
 
   _startLocalVideo (enabled) {
-    const screenShare = this.props.screenShare || false
     TWVideoModule.startLocalVideo(enabled)
   }
 

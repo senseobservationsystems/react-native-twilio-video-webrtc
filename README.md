@@ -1,12 +1,4 @@
-![GitHub Logo](/logo.png)
-
-# Twilio Video (WebRTC) for React Native
-
-Platforms:
-- iOS
-- Android
-
-People using a version < 1.0.1 please move to 1.0.1 since the project changed a lot internally to support the stable TwilioVideo version.
+# NiceDay Fork
 
 ## Context of Forking
 
@@ -50,6 +42,22 @@ for its `RNVideoViewGroup` class. This will allow us to retrigger the video layo
 
 There's a bug where mirroring of local video sometimes isn't set correctly.
 Especially if there are more than one local video being rendered.
+
+---
+
+Upstream README continues below…
+
+---
+
+![GitHub Logo](/logo.png)
+
+# Twilio Video (WebRTC) for React Native
+
+Platforms:
+- iOS
+- Android
+
+People using a version < 1.0.1 please move to 1.0.1 since the project changed a lot internally to support the stable TwilioVideo version.
 
 ## Installation
 

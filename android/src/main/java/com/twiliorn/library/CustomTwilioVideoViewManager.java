@@ -8,13 +8,14 @@
  */
 package com.twiliorn.library;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.annotations.ReactProp;
 
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_D
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_STATS_RECEIVED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_NETWORK_QUALITY_LEVELS_CHANGED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DOMINANT_SPEAKER_CHANGED;
+
 
 public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilioVideoView> {
     public static final String REACT_CLASS = "RNCustomTwilioVideoView";
@@ -79,14 +81,26 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 String accessToken = args.getString(1);
                 boolean enableAudio = args.getBoolean(2);
                 boolean enableVideo = args.getBoolean(3);
-                ReadableMap encodingParameters = args.getMap(4);
+                boolean enableRemoteAudio = args.getBoolean(4);
                 boolean enableNetworkQualityReporting = args.getBoolean(5);
                 boolean dominantSpeakerEnabled = args.getBoolean(6);
-                ReadableMap bandwidthProfileOptions = args.getMap(7);
-                view.connectToRoomWrapper(roomName, accessToken
-                    , enableAudio, enableVideo, encodingParameters
-                    , enableNetworkQualityReporting, dominantSpeakerEnabled
-                    , bandwidthProfileOptions);
+                boolean maintainVideoTrackInBackground = args.getBoolean(7);
+                String cameraType = args.getString(8);
+                ReadableMap bandwidthProfileOptions = args.getMap(9);
+                ReadableMap encodingParameters = args.getMap(10);
+                view.connectToRoomWrapper(
+                    roomName,
+                    accessToken,
+                    enableAudio,
+                    enableVideo,
+                    enableRemoteAudio,
+                    enableNetworkQualityReporting,
+                    dominantSpeakerEnabled,
+                    maintainVideoTrackInBackground,
+                    cameraType,
+                    bandwidthProfileOptions,
+                    encodingParameters
+                  );
                 break;
             case DISCONNECT:
                 view.disconnect();
