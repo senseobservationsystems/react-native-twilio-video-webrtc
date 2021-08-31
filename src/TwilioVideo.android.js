@@ -8,141 +8,142 @@
  */
 
 import {
-  requireNativeComponent,
-  View,
   Platform,
   UIManager,
-  findNodeHandle
+  View,
+  findNodeHandle,
+  requireNativeComponent
 } from 'react-native'
 import React, { Component } from 'react'
+
 import PropTypes from 'prop-types'
 
 const propTypes = {
   ...View.propTypes,
   /**
-   * Callback that is called when camera source changes
-   */
+     * Callback that is called when camera source changes
+     */
   onCameraSwitched: PropTypes.func,
 
   /**
-   * Callback that is called when video is toggled.
-   */
+     * Callback that is called when video is toggled.
+     */
   onVideoChanged: PropTypes.func,
 
   /**
-   * Callback that is called when a audio is toggled.
-   */
+     * Callback that is called when a audio is toggled.
+     */
   onAudioChanged: PropTypes.func,
 
   /**
-   * Callback that is called when user is connected to a room.
-   */
+     * Callback that is called when user is connected to a room.
+     */
   onRoomDidConnect: PropTypes.func,
 
   /**
-   * Callback that is called when connecting to room fails.
-   */
+     * Callback that is called when connecting to room fails.
+     */
   onRoomDidFailToConnect: PropTypes.func,
 
   /**
-   * Callback that is called when user is disconnected from room.
-   */
+     * Callback that is called when user is disconnected from room.
+     */
   onRoomDidDisconnect: PropTypes.func,
 
   /**
-   * Called when a new data track has been added
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a new data track has been added
+     *
+     * @param {{participant, track}}
+     */
   onParticipantAddedDataTrack: PropTypes.func,
 
   /**
-   * Called when a data track has been removed
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a data track has been removed
+     *
+     * @param {{participant, track}}
+     */
   onParticipantRemovedDataTrack: PropTypes.func,
 
   /**
-   * Called when an dataTrack receives a message
-   *
-   * @param {{message}}
-   */
+     * Called when an dataTrack receives a message
+     *
+     * @param {{message}}
+     */
   onDataTrackMessageReceived: PropTypes.func,
 
   /**
-   * Called when a new video track has been added
-   *
-   * @param {{participant, track, enabled}}
-   */
+     * Called when a new video track has been added
+     *
+     * @param {{participant, track, enabled}}
+     */
   onParticipantAddedVideoTrack: PropTypes.func,
 
   /**
-   * Called when a video track has been removed
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a video track has been removed
+     *
+     * @param {{participant, track}}
+     */
   onParticipantRemovedVideoTrack: PropTypes.func,
 
   /**
-   * Called when a new audio track has been added
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a new audio track has been added
+     *
+     * @param {{participant, track}}
+     */
   onParticipantAddedAudioTrack: PropTypes.func,
 
   /**
-   * Called when a audio track has been removed
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a audio track has been removed
+     *
+     * @param {{participant, track}}
+     */
   onParticipantRemovedAudioTrack: PropTypes.func,
 
   /**
-   * Callback called a participant enters a room.
-   */
+     * Callback called a participant enters a room.
+     */
   onRoomParticipantDidConnect: PropTypes.func,
 
   /**
-   * Callback that is called when a participant exits a room.
-   */
+     * Callback that is called when a participant exits a room.
+     */
   onRoomParticipantDidDisconnect: PropTypes.func,
   /**
-   * Called when a video track has been enabled.
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a video track has been enabled.
+     *
+     * @param {{participant, track}}
+     */
   onParticipantEnabledVideoTrack: PropTypes.func,
   /**
-   * Called when a video track has been disabled.
-   *
-   * @param {{participant, track}}
-   */
+     * Called when a video track has been disabled.
+     *
+     * @param {{participant, track}}
+     */
   onParticipantDisabledVideoTrack: PropTypes.func,
   /**
-   * Called when an audio track has been enabled.
-   *
-   * @param {{participant, track}}
-   */
+     * Called when an audio track has been enabled.
+     *
+     * @param {{participant, track}}
+     */
   onParticipantEnabledAudioTrack: PropTypes.func,
   /**
-   * Called when an audio track has been disabled.
-   *
-   * @param {{participant, track}}
-   */
+     * Called when an audio track has been disabled.
+     *
+     * @param {{participant, track}}
+     */
   onParticipantDisabledAudioTrack: PropTypes.func,
   /**
-   * Callback that is called when stats are received (after calling getStats)
-   */
+     * Callback that is called when stats are received (after calling getStats)
+     */
   onStatsReceived: PropTypes.func,
   /**
-   * Callback that is called when network quality levels are changed (only if enableNetworkQualityReporting in connect is set to true)
-   */
+     * Callback that is called when network quality levels are changed (only if enableNetworkQualityReporting in connect is set to true)
+     */
   onNetworkQualityLevelsChanged: PropTypes.func,
   /**
-   * Called when dominant speaker changes
-   * @param {{ participant, room }} dominant participant and room
-   */
+     * Called when dominant speaker changes
+     * @param {{ participant, room }} dominant participant and room
+     */
   onDominantSpeakerDidChange: PropTypes.func
 }
 
@@ -168,15 +169,13 @@ class CustomTwilioVideoView extends Component {
   connect ({
     roomName,
     accessToken,
+    cameraType = 'front',
     enableAudio = true,
     enableVideo = true,
-    encodingParameters = {
-      "enableH264Codec": false,
-      "audioBitrate": -1,
-      "videoBitrate": -1
-    },
+    enableRemoteAudio = true,
     enableNetworkQualityReporting = false,
     dominantSpeakerEnabled = false,
+    maintainVideoTrackInBackground = false,
     bandwidthProfileOptions = {
       "mode":"",
       "maxTracks": -1,
@@ -188,6 +187,11 @@ class CustomTwilioVideoView extends Component {
         "high": "",
       },
       "trackSwitchOffMode":"",
+    },
+    encodingParameters = {
+      "enableH264Codec": false,
+      "audioBitrate": -1,
+      "videoBitrate": -1
     }
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
@@ -195,10 +199,13 @@ class CustomTwilioVideoView extends Component {
       accessToken,
       enableAudio,
       enableVideo,
-      encodingParameters,
+      enableRemoteAudio,
       enableNetworkQualityReporting,
       dominantSpeakerEnabled,
-      bandwidthProfileOptions
+      maintainVideoTrackInBackground,
+      cameraType,
+      bandwidthProfileOptions,
+      encodingParameters
     ])
   }
 
@@ -260,7 +267,7 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.toggleStereo, [enabled])
     return Promise.resolve(enabled)
   }
-
+  
   setTrackPriority (trackSid, priority) {
     this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority])
   }
@@ -327,12 +334,8 @@ class CustomTwilioVideoView extends Component {
   }
 
   render () {
-    return (
-      <NativeCustomTwilioVideoView
-        ref='videoView'
-        {...this.props}
-        {...this.buildNativeEventWrappers()}
-      />
+    return (<NativeCustomTwilioVideoView ref='videoView' {...this.props} {...this.buildNativeEventWrappers()}
+    />
     )
   }
 }
