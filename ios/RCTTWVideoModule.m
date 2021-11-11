@@ -314,6 +314,9 @@ RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithRes
 
 
 RCT_EXPORT_METHOD(flipCamera) {
+    if (self.localVideoTrack == nil) {
+        return;
+    }
     if (self.camera) {
         AVCaptureDevicePosition position = self.camera.device.position;
         AVCaptureDevicePosition nextPosition = position == AVCaptureDevicePositionFront ? AVCaptureDevicePositionBack : AVCaptureDevicePositionFront;
