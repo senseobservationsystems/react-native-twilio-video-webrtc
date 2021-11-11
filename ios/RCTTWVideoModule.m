@@ -279,6 +279,9 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
 }
 
 - (bool)_setLocalVideoEnabled:(bool)enabled cameraType:(NSString *)cameraType {
+  if (self.localVideoTrack == nil) {
+    [self startLocalVideo:enabled];
+  }
   if (self.localVideoTrack != nil) {
       [self.localVideoTrack setEnabled:enabled];
       if (self.camera) {
@@ -452,18 +455,18 @@ RCT_EXPORT_METHOD(getStats) {
   }
 }
 
--(void)enableLocalVideoAtCreationTime:(BOOL *)enableVideo {
-    if(enableVideo){
-      if (self.localVideoTrack == nil) {
-          // We disabled video in a previous call, attempt to re-enable
-          [self startLocalVideo:true];
-      } else {
-          [self.localVideoTrack setEnabled:true];
-      }
-    } else {
-        [self stopLocalVideo];
-    }
-}
+// -(void)enableLocalVideoAtCreationTime:(BOOL *)enableVideo {
+//     if(enableVideo){
+//       if (self.localVideoTrack == nil) {
+//           // We disabled video in a previous call, attempt to re-enable
+//           [self startLocalVideo:true];
+//       } else {
+//           [self.localVideoTrack setEnabled:true];
+//       }
+//     } else {
+//         [self stopLocalVideo];
+//     }
+// }
 
 -(TVITrackPriority)parsePriorityString:(NSString *)priority {
     if (priority == nil) {
@@ -589,7 +592,7 @@ RCT_EXPORT_METHOD(getStats) {
 }
 
 RCT_EXPORT_METHOD(connect:(NSString *)accessToken roomName:(NSString *)roomName enableAudio:(BOOL *)enableAudio enableVideo:(BOOL *)enableVideo encodingParameters:(NSDictionary *)encodingParameters enableNetworkQualityReporting:(BOOL *)enableNetworkQualityReporting dominantSpeakerEnabled:(BOOL *)dominantSpeakerEnabled cameraType:(NSString *)cameraType bandwidthProfileOptions:(NSDictionary *)bandwidthProfileOptions) {
-  [self enableLocalVideoAtCreationTime: enableVideo];
+  // [self enableLocalVideoAtCreationTime: enableVideo];
   TVIVideoBandwidthProfileOptions* videoBandwidthProfile = [self prepareBandwidthProfile:bandwidthProfileOptions];
 
   [self _setLocalVideoEnabled:enableVideo cameraType:cameraType];
