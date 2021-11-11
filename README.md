@@ -22,6 +22,15 @@ Luckily, we already create a bit of abstraction inside goalie mobile app, such t
 
 We fork this repo as sense to implement certain features and fix some bugs.
 
+### Support Playing Back Stereo Audio During A Call
+
+To build the EMDR feature in NiceDay we need to play back a stereo audio loop while the video call is ongoing. This is not possible with the upstream repo as the underlying WebRTC implementation for iOS forces the audio device to be mono.
+
+This library creates a [custom audio device](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/blob/niceday-master/ios/RCTTWCustomAudioDevice.m) which is setup to be in stereo and the manually mixes the Twilio audio stream with a stereo looping audio to allow EMDR therapy.
+
+The custom audio device implementation above is based on the [Twilio Audio Device Example](https://github.com/twilio/video-quickstart-ios/tree/master/AudioDeviceExample)
+
+
 ### Support Audio Call
 
 The original repo always create video track. Even when the app specify that the call is audio only.
