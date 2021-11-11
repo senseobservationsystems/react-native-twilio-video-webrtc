@@ -851,11 +851,11 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     public void toggleVideo(boolean enabled, ReadableMap cameraSettings) {
-        // ND Check if ready
-        if (cameraCapturer == null) {
-            Log.d("toggleVideo", "not ready");
-            return;
-        }
+        // // ND Check if ready
+        // if (cameraCapturer == null) {
+        //     Log.d("toggleVideo", "not ready");
+        //     return;
+        // }
 
         if (cameraSettings != null) {
             if (cameraSettings.hasKey("maxDimensions")) {
