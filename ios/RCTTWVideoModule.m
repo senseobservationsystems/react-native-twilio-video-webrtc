@@ -279,6 +279,9 @@ RCT_REMAP_METHOD(setLocalAudioEnabled, enabled:(BOOL)enabled setLocalAudioEnable
 }
 
 - (bool)_setLocalVideoEnabled:(bool)enabled cameraType:(NSString *)cameraType {
+  if (self.localVideoTrack == nil && enabled) {
+    [self startLocalVideo:true];
+  }
   if (self.localVideoTrack != nil) {
       [self.localVideoTrack setEnabled:enabled];
       if (self.camera) {
