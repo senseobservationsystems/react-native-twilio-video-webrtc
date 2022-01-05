@@ -1,6 +1,6 @@
 # Twilio Video (WebRTC) for React Native
 
-NiceDay fork of [react-native-twilio-video-webrtc](github.com/blackuy/react-native-twilio-video-webrtc) used in [goalie-2-mobile-app](github.com/senseobservationsystems/goalie-2-mobile-app).
+NiceDay fork of [react-native-twilio-video-webrtc](https://github.com/blackuy/react-native-twilio-video-webrtc) used in [goalie-2-mobile-app](https://github.com/senseobservationsystems/goalie-2-mobile-app).
 
 ## Context of Forking
 
@@ -55,7 +55,7 @@ Especially if there are more than one local video being rendered.
 
 ## Contributing
 
-- [In `goalie-2-mobile-app`] Track [issues](github.com/senseobservationsystems/goalie-2-mobile-app/issues)
+- [In `goalie-2-mobile-app`] Track [issues](https://github.com/senseobservationsystems/goalie-2-mobile-app/issues)
 - [In this repo] Fork `niceday-master` (e.g. `1234-fix-something`)
 - [In this repo] Fix something!
 - [In this repo] Create a 'child' PR targeting `niceday-master`
@@ -63,7 +63,7 @@ Especially if there are more than one local video being rendered.
 - Wait for both PR to be approved
 - [In this repo] Once both PRs are approved, merge the child PR into `niceday-master`
 - [In this repo] [Create a new release](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/releases/new) targeting `niceday-master` with the next semantic version (e.g. `v1.1.0`)
-- [In `goalie-2-mobile-app`] Update the parent PR to target the new release in `package.json` (e.g. `git+ssh://git@github.com/senseobservationsystems/react-native-twilio-video-webrtc.git#v1.1.0`)
+- [In `goalie-2-mobile-app`] Update the parent PR to use the new release in `package.json` (e.g. `git+ssh://git@github.com/senseobservationsystems/react-native-twilio-video-webrtc.git#v1.1.0`)
 - [In `goalie-2-mobile-app`] Re-request review & merge the parent PR
 
 ---
