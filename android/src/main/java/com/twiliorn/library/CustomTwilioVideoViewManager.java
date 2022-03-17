@@ -100,7 +100,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                     maintainVideoTrackInBackground,
                     cameraType,
                     bandwidthProfileOptions,
-                    encodingParameters
+                    encodingParameters,
                     enableH264Codec
                   );
                 break;
