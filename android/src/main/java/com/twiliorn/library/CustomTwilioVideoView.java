@@ -86,9 +86,6 @@ import com.twilio.video.VideoFormat;
 import com.twilio.video.VideoCodec;
 import com.twilio.video.VideoView;
 
-import com.twilio.audioswitch.AudioDevice;
-import com.twilio.audioswitch.AudioSwitch;
-
 import org.webrtc.voiceengine.WebRtcAudioManager;
 
 import tvi.webrtc.Camera1Enumerator;
@@ -230,8 +227,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private int previousAudioMode;
     private boolean disconnectedFromOnDestroy;
 
-    // Audio Management
-    private AudioSwitch audioDeviceSelector;
     private int savedVolumeControlStream;
 
     // Dedicated thread and handler for messages received from a RemoteDataTrack
@@ -260,38 +255,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             savedVolumeControlStream = themedReactContext.getCurrentActivity().getVolumeControlStream();
             themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
         }
-
-        audioDeviceSelector = new AudioSwitch(themedReactContext);
-        audioDeviceSelector.start((audioDevices, currentDevice) -> {
-            // As Audio Switch prioritises Earpiece over Speakerphone, we specify our own device prioritization order int his listener
-
-            AudioDevice bluetoothDevice = null;
-            AudioDevice wiredDevice = null;
-            AudioDevice speakerPhone = null;
-
-            // Loop through all available audio devices and find the last connected bluetooth, wired and speakerphone device
-            for (AudioDevice device : audioDevices) {
-                if (device instanceof AudioDevice.BluetoothHeadset) {
-                    bluetoothDevice = device;
-                } else if (device instanceof AudioDevice.WiredHeadset) {
-                    wiredDevice = device;
-                } else if (device instanceof AudioDevice.Speakerphone) {
-                    speakerPhone = device;
-                }
-            }
-
-            // Select devices based on our order of prioritisation
-            // This means Bluetooth -> Wired Headset -> Speakerphone
-            if (bluetoothDevice != null && !(currentDevice instanceof AudioDevice.BluetoothHeadset)) {
-                audioDeviceSelector.selectDevice(bluetoothDevice);
-            } else if (bluetoothDevice == null && wiredDevice != null && !(currentDevice instanceof AudioDevice.WiredHeadset)) {
-                audioDeviceSelector.selectDevice(wiredDevice);
-            } else if (bluetoothDevice == null && wiredDevice == null && speakerPhone != null && !(currentDevice instanceof AudioDevice.Speakerphone)){
-                audioDeviceSelector.selectDevice(speakerPhone);
-            }
-
-            return Unit.INSTANCE;
-        });
 
         /*
          * Needed for setting/abandoning audio focus during call
@@ -462,7 +425,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         /*
          * Tear down audio management and restore previous volume stream
          */
-        audioDeviceSelector.stop();
         if (themedReactContext != null && themedReactContext.getCurrentActivity() != null) {
             themedReactContext.getCurrentActivity().setVolumeControlStream(savedVolumeControlStream);
         }
@@ -839,11 +801,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             setStereoAudioFocus(focus);
             return;
         } 
-        if (focus) {
-            audioDeviceSelector.activate();
-        } else {
-            audioDeviceSelector.deactivate();
-        }
     }
 
     @Override
