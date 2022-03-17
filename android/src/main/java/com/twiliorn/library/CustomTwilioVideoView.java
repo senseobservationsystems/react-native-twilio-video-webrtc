@@ -83,6 +83,7 @@ import com.twilio.video.Video;
 import com.twilio.video.VideoBandwidthProfileOptions;
 import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoFormat;
+import com.twilio.video.VideoCodec;
 import com.twilio.video.VideoView;
 
 import com.twilio.audioswitch.AudioDevice;
