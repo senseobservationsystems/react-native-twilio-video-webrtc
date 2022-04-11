@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1D73F90924A9E7110021B5F0 /* RCTTWCustomAudioDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D73F90724A9E7100021B5F0 /* RCTTWCustomAudioDevice.m */; };
+		1D73F9A624ACF0050021B5F0 /* TwilioStereoTonePlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D73F9A524ACF0050021B5F0 /* TwilioStereoTonePlayer.m */; };
 		73814A34203776CD00E8C67D /* RCTTWLocalVideoViewManager.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 738F9D69203760FF00058972 /* RCTTWLocalVideoViewManager.h */; };
 		73814A35203776CD00E8C67D /* RCTTWRemoteVideoViewManager.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 738F9D6A203760FF00058972 /* RCTTWRemoteVideoViewManager.h */; };
 		73814A36203776CD00E8C67D /* RCTTWSerializable.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 738F9D65203760FF00058972 /* RCTTWSerializable.h */; };
@@ -35,6 +37,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1D73F90724A9E7100021B5F0 /* RCTTWCustomAudioDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCTTWCustomAudioDevice.m; sourceTree = "<group>"; };
+		1D73F90824A9E7110021B5F0 /* RCTTWCustomAudioDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCTTWCustomAudioDevice.h; sourceTree = "<group>"; };
+		1D73F9A424ACF0050021B5F0 /* TwilioStereoTonePlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwilioStereoTonePlayer.h; sourceTree = "<group>"; };
+		1D73F9A524ACF0050021B5F0 /* TwilioStereoTonePlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TwilioStereoTonePlayer.m; sourceTree = "<group>"; };
 		738F9D552037604000058972 /* libRNTwilioVideoWebRTC.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNTwilioVideoWebRTC.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		738F9D63203760FF00058972 /* RCTTWVideoModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCTTWVideoModule.h; sourceTree = SOURCE_ROOT; };
 		738F9D64203760FF00058972 /* RCTTWSerializable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCTTWSerializable.m; sourceTree = SOURCE_ROOT; };
@@ -79,6 +85,8 @@
 		738F9D572037604000058972 /* RNTwilioVideoWebRTC */ = {
 			isa = PBXGroup;
 			children = (
+				1D73F9A424ACF0050021B5F0 /* TwilioStereoTonePlayer.h */,
+				1D73F9A524ACF0050021B5F0 /* TwilioStereoTonePlayer.m */,
 				738F9D69203760FF00058972 /* RCTTWLocalVideoViewManager.h */,
 				738F9D67203760FF00058972 /* RCTTWLocalVideoViewManager.m */,
 				738F9D6A203760FF00058972 /* RCTTWRemoteVideoViewManager.h */,
@@ -87,6 +95,8 @@
 				738F9D64203760FF00058972 /* RCTTWSerializable.m */,
 				738F9D63203760FF00058972 /* RCTTWVideoModule.h */,
 				738F9D68203760FF00058972 /* RCTTWVideoModule.m */,
+				1D73F90824A9E7110021B5F0 /* RCTTWCustomAudioDevice.h */,
+				1D73F90724A9E7100021B5F0 /* RCTTWCustomAudioDevice.m */,
 			);
 			name = RNTwilioVideoWebRTC;
 			sourceTree = "<group>";
@@ -156,7 +166,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1D73F90924A9E7110021B5F0 /* RCTTWCustomAudioDevice.m in Sources */,
 				738F9D6E203760FF00058972 /* RCTTWVideoModule.m in Sources */,
+				1D73F9A624ACF0050021B5F0 /* TwilioStereoTonePlayer.m in Sources */,
 				738F9D6C203760FF00058972 /* RCTTWRemoteVideoViewManager.m in Sources */,
 				738F9D6B203760FF00058972 /* RCTTWSerializable.m in Sources */,
 				738F9D6D203760FF00058972 /* RCTTWLocalVideoViewManager.m in Sources */,

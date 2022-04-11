@@ -1,3 +1,63 @@
+# NiceDay Fork
+
+## Context of Forking
+
+### Where is this forked repo used?
+
+In the NiceDay app.
+
+### Why do we have this repo forked?
+
+This lib provides the base React Component for app to implement its call screen. Includes in this React Component, is its native bridging with Twilio Native Component, the initialization and management of Twilio process. While in the development of goalie mobile app's call screen, we found some bug, and thus, we fork this repo. Details about the bugs itself is below.
+
+### When did we fork it?
+
+Around the end of 2019, when we start to implement our own video call screen.
+
+### What is the price of removing this repo?
+
+Luckily, we already create a bit of abstraction inside goalie mobile app, such that, the screen itself doesn't directly touch the components from this lib. Thus, if we want to remove this repo, all we need to find/create a lib to do the native bridging and Twilio's management.
+
+## Objective of Forking
+
+We fork this repo as sense to implement certain features and fix some bugs.
+
+### Support Playing Back Stereo Audio During A Call
+
+To build the EMDR feature in NiceDay we need to play back a stereo audio loop while the video call is ongoing. This is not possible with the upstream repo as the underlying WebRTC implementation for iOS forces the audio device to be mono.
+
+This library creates a [custom audio device](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/blob/niceday-master/ios/RCTTWCustomAudioDevice.m) which is setup to be in stereo and the manually mixes the Twilio audio stream with a stereo looping audio to allow EMDR therapy.
+
+The custom audio device implementation above is based on the [Twilio Audio Device Example](https://github.com/twilio/video-quickstart-ios/tree/master/AudioDeviceExample)
+
+
+### Support Audio Call
+
+The original repo always create video track. Even when the app specify that the call is audio only.
+This is also seen when app doesn't give permissions for camera and is crashing at the start of the call.
+
+To achieve this, we change the implementation of how call is being started, and add logic to
+create video track in the middle of a call in case user toggled their camera button.
+
+### Support changing video dimension/ratio
+
+To achieve this, we add new props for its TwilioVideo component called `scalesType`.
+This will give us flexibility to set whether the video should be shown in `Fill` or `Fit` Aspect Ratio.
+
+Specifically in Android, to support this, we need to add implementation of `requestLayout` and `measureAndLayout`
+for its `RNVideoViewGroup` class. This will allow us to retrigger the video layout when user change the aspect ratio.
+
+### Bug on mirroring of local video
+
+There's a bug where mirroring of local video sometimes isn't set correctly.
+Especially if there are more than one local video being rendered.
+
+---
+
+Upstream README continues below…
+
+---
+
 ![GitHub Logo](/logo.png)
 
 # Twilio Video (WebRTC) for React Native

@@ -164,12 +164,16 @@ export default class TwilioVideo extends Component {
 
     this._subscriptions = []
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
+    
+    this.setStereoEnabled = this.setStereoEnabled.bind(this)
+    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
+    this.usesCustomAudioDevice = true;
   }
 
   componentDidMount () {
     this._registerEvents()
     if (this.props.autoInitializeCamera !== false) {
-      this._startLocalVideo()
+      this._startLocalVideo(false)
     }
     this._startLocalAudio()
   }
@@ -197,8 +201,9 @@ export default class TwilioVideo extends Component {
 
   /**
    * Enable or disable local video
+   * NOTE: cameraSettings are ignored on iOS
    */
-  setLocalVideoEnabled (enabled) {
+   setLocalVideoEnabled (enabled, cameraSettings) {
     return TWVideoModule.setLocalVideoEnabled(enabled)
   }
 
@@ -210,7 +215,23 @@ export default class TwilioVideo extends Component {
   }
 
   /**
-   * Filp between the front and back camera
+   * Enable or disable stereo mode
+   */
+  setStereoEnabled (enabled) {
+    return TWVideoModule.setStereoEnabled(enabled)
+  }
+
+  /**
+   * Specifies the priority a remote participants video track should get
+   * @param {*} trackSid the SID of the track setting the priority for
+   * @param {*} trackPriority the priority of the track. Can be low, standard, high or null
+   */
+  setTrackPriority (trackSid, trackPriority) {
+    TWVideoModule.setTrackPriority(trackSid, trackPriority)
+  }
+
+  /**
+   * Flip between the front and back camera
    */
   flipCamera () {
     TWVideoModule.flipCamera()
@@ -234,8 +255,11 @@ export default class TwilioVideo extends Component {
    * Connect to given room name using the JWT access token
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
-   * @param  {String} encodingParameters Control Encoding config
+   * @param  {boolean} enableVideo Don't start video unless it's necessary
+   * @param  {object} encodingParameters Control Encoding config
    * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
+   * @param  {Boolean} dominantSpeakerEnabled Enable dominant speaker
+   * @param  {object} bandwidthProfileOptions Bandwidth profile options
    */
   connect ({
     roomName,
@@ -245,7 +269,8 @@ export default class TwilioVideo extends Component {
     enableVideo = true,
     encodingParameters = null,
     enableNetworkQualityReporting = false,
-    dominantSpeakerEnabled = false
+    dominantSpeakerEnabled = false,
+    bandwidthProfileOptions = null
   }) {
     TWVideoModule.connect(accessToken,
       roomName,
@@ -254,7 +279,8 @@ export default class TwilioVideo extends Component {
       encodingParameters,
       enableNetworkQualityReporting,
       dominantSpeakerEnabled,
-      cameraType
+      cameraType,
+      bandwidthProfileOptions
     )
   }
 
@@ -301,8 +327,8 @@ export default class TwilioVideo extends Component {
     TWVideoModule.sendString(message)
   }
 
-  _startLocalVideo () {
-    TWVideoModule.startLocalVideo()
+  _startLocalVideo (enabled) {
+    TWVideoModule.startLocalVideo(enabled)
   }
 
   _stopLocalVideo () {
@@ -310,7 +336,7 @@ export default class TwilioVideo extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio()
+    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
   }
 
   _stopLocalAudio () {

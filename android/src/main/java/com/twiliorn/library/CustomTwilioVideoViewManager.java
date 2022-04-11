@@ -41,7 +41,7 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_D
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_STATS_RECEIVED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_NETWORK_QUALITY_LEVELS_CHANGED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DOMINANT_SPEAKER_CHANGED;
-import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_LOCAL_PARTICIPANT_SUPPORTED_CODECS;
+
 
 public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilioVideoView> {
     public static final String REACT_CLASS = "RNCustomTwilioVideoView";
@@ -60,6 +60,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int SEND_STRING = 12;
     private static final int PUBLISH_VIDEO = 13;
     private static final int PUBLISH_AUDIO = 14;
+    private static final int TOGGLE_STEREO = 15;
+    private static final int SET_TRACK_PRIORITY = 16;
 
     @Override
     public String getName() {
@@ -84,8 +86,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 boolean dominantSpeakerEnabled = args.getBoolean(6);
                 boolean maintainVideoTrackInBackground = args.getBoolean(7);
                 String cameraType = args.getString(8);
-                ReadableMap encodingParameters = args.getMap(9);
-                boolean enableH264Codec = encodingParameters.hasKey("enableH264Codec") ? encodingParameters.getBoolean("enableH264Codec") : false;
+                ReadableMap bandwidthProfileOptions = args.getMap(9);
+                ReadableMap encodingParameters = args.getMap(10);
                 view.connectToRoomWrapper(
                     roomName,
                     accessToken,
@@ -96,7 +98,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                     dominantSpeakerEnabled,
                     maintainVideoTrackInBackground,
                     cameraType,
-                    enableH264Codec
+                    bandwidthProfileOptions,
+                    encodingParameters
                   );
                 break;
             case DISCONNECT:
@@ -107,7 +110,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 break;
             case TOGGLE_VIDEO:
                 Boolean videoEnabled = args.getBoolean(0);
-                view.toggleVideo(videoEnabled);
+                ReadableMap cameraSettings = args.getMap(1);
+                view.toggleVideo(videoEnabled, cameraSettings);
                 break;
             case TOGGLE_SOUND:
                 Boolean audioEnabled = args.getBoolean(0);
@@ -143,6 +147,15 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
             case PUBLISH_AUDIO:
                 view.publishLocalAudio(args.getBoolean(0));
                 break;
+            case TOGGLE_STEREO:
+                Boolean stereoEnabled = args.getBoolean(0);
+                view.toggleStereo(stereoEnabled);
+                break;
+            case SET_TRACK_PRIORITY:
+                String trackSid = args.getString(0);
+                String trackPriorityString = args.getString(1);
+                view.setTrackPriority(trackSid, trackPriorityString);
+                break;
         }
     }
 
@@ -170,8 +183,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
         ));
 
         map.putAll(MapBuilder.of(
-                ON_PARTICIPANT_REMOVED_DATA_TRACK, MapBuilder.of("registrationName", ON_PARTICIPANT_REMOVED_DATA_TRACK),
-                ON_LOCAL_PARTICIPANT_SUPPORTED_CODECS, MapBuilder.of("registrationName", ON_LOCAL_PARTICIPANT_SUPPORTED_CODECS)
+                ON_PARTICIPANT_REMOVED_DATA_TRACK, MapBuilder.of("registrationName", ON_PARTICIPANT_REMOVED_DATA_TRACK)
         ));
 
         map.putAll(MapBuilder.of(
@@ -201,6 +213,8 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
                 .put("sendString", SEND_STRING)
+                .put("setStereo", TOGGLE_STEREO)
+                .put("setTrackPriority", SET_TRACK_PRIORITY)
                 .build();
     }
 }

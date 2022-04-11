@@ -144,11 +144,7 @@ const propTypes = {
      * Called when dominant speaker changes
      * @param {{ participant, room }} dominant participant and room
      */
-  onDominantSpeakerDidChange: PropTypes.func,
-  /**
-     * Callback that is called after determining what codecs are supported
-     */
-  onLocalParticipantSupportedCodecs: PropTypes.func
+  onDominantSpeakerDidChange: PropTypes.func
 }
 
 const nativeEvents = {
@@ -165,7 +161,8 @@ const nativeEvents = {
   toggleBluetoothHeadset: 11,
   sendString: 12,
   publishVideo: 13,
-  publishAudio: 14
+  publishAudio: 14,
+  toggleStereo: 15
 }
 
 class CustomTwilioVideoView extends Component {
@@ -179,7 +176,23 @@ class CustomTwilioVideoView extends Component {
     enableNetworkQualityReporting = false,
     dominantSpeakerEnabled = false,
     maintainVideoTrackInBackground = false,
-    encodingParameters = {}
+    bandwidthProfileOptions = {
+      "mode":"",
+      "maxTracks": -1,
+      "maxSubscriptionBitrate": -1,
+      "dominantSpeakerPriority": "",
+      "renderDimensions": {
+        "low": "",
+        "standard": "",
+        "high": "",
+      },
+      "trackSwitchOffMode":"",
+    },
+    encodingParameters = {
+      "enableH264Codec": false,
+      "audioBitrate": -1,
+      "videoBitrate": -1
+    }
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
@@ -191,6 +204,7 @@ class CustomTwilioVideoView extends Component {
       dominantSpeakerEnabled,
       maintainVideoTrackInBackground,
       cameraType,
+      bandwidthProfileOptions,
       encodingParameters
     ])
   }
@@ -229,8 +243,8 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.switchCamera, [])
   }
 
-  setLocalVideoEnabled (enabled) {
-    this.runCommand(nativeEvents.toggleVideo, [enabled])
+  setLocalVideoEnabled (enabled, cameraSettings) {
+    this.runCommand(nativeEvents.toggleVideo, [enabled, cameraSettings])
     return Promise.resolve(enabled)
   }
 
@@ -247,6 +261,15 @@ class CustomTwilioVideoView extends Component {
   setBluetoothHeadsetConnected (enabled) {
     this.runCommand(nativeEvents.toggleBluetoothHeadset, [enabled])
     return Promise.resolve(enabled)
+  }
+
+  setStereoEnabled (enabled) {
+    this.runCommand(nativeEvents.toggleStereo, [enabled])
+    return Promise.resolve(enabled)
+  }
+  
+  setTrackPriority (trackSid, priority) {
+    this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority])
   }
 
   getStats () {
@@ -298,8 +321,7 @@ class CustomTwilioVideoView extends Component {
       'onParticipantDisabledAudioTrack',
       'onStatsReceived',
       'onNetworkQualityLevelsChanged',
-      'onDominantSpeakerDidChange',
-      'onLocalParticipantSupportedCodecs'
+      'onDominantSpeakerDidChange'
     ].reduce((wrappedEvents, eventName) => {
       if (this.props[eventName]) {
         return {

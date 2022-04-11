@@ -13,21 +13,25 @@ declare module "react-native-twilio-video-webrtc" {
   interface TwilioVideoParticipantViewProps extends ViewProps {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
+    scalesType?: number;
     scaleType?: scaleType;
+    applyZOrder?: boolean;
   }
 
   interface TwilioVideoLocalViewProps extends ViewProps {
     enabled: boolean;
     ref?: React.Ref<any>;
+    scalesType?: number;
     scaleType?: scaleType;
+    applyZOrder?: boolean;
   }
 
-  interface Participant {
+  export interface Participant {
     sid: string;
     identity: string;
   }
 
-  interface Track {
+  export interface Track {
     enabled: boolean;
     trackName: string;
     trackSid: string;
@@ -120,6 +124,33 @@ declare module "react-native-twilio-video-webrtc" {
     ref?: React.Ref<any>;
   };
 
+  export type BandwidthProfileMode = "GRID" | "COLLABORATION" | "PRESENTATION";
+
+  export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
+
+  export type TrackSwitchOffMode = "DISABLED" | "PREDICTED" | "DETECTED";
+
+  export type CameraSettings = {
+    maxDimensions: string;
+    maxFPS: number;
+  };
+
+  // Dimensions are provided in the string in the format of <width>x<height>
+  export type RenderDimensions = {
+    "low"?: string,
+    "standard"?: string,
+    "high"?: string,
+  }
+
+  export type BandwidthProfileOptions = {
+    mode?: BandwidthProfileMode
+    maxTracks?: number,
+    maxSubscriptionBitrate?: number,
+    dominantSpeakerPriority?: TrackPriority,
+    renderDimensions?: RenderDimensions,
+    trackSwitchOffMode?: TrackSwitchOffMode,
+  }
+
   type iOSConnectParams = {
     roomName?: string;
     accessToken: string;
@@ -134,6 +165,7 @@ declare module "react-native-twilio-video-webrtc" {
       videoBitrate?: number;
     };
     enableNetworkQualityReporting?: boolean;
+    bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
   type androidConnectParams = {
@@ -143,16 +175,23 @@ declare module "react-native-twilio-video-webrtc" {
     dominantSpeakerEnabled?: boolean;
     enableAudio?: boolean;
     enableVideo?: boolean;
+    encodingParameters?: {
+      enableH264Codec?: boolean;
+      // if audioBitrate OR videoBitrate is provided, you must provide both
+      audioBitrate?: number;
+      videoBitrate?: number;
+    };
     enableRemoteAudio?: boolean;
     encodingParameters?: {
       enableH264Codec?: boolean;
     };
     enableNetworkQualityReporting?: boolean;
     maintainVideoTrackInBackground?: boolean;
+    bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
   class TwilioVideo extends React.Component<TwilioVideoProps> {
-    setLocalVideoEnabled: (enabled: boolean) => Promise<boolean>;
+    setLocalVideoEnabled: (enabled: boolean, cameraSettings?: CameraSettings) => Promise<boolean>;
     setLocalAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setRemoteAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setBluetoothHeadsetConnected: (enabled: boolean) => Promise<boolean>;
@@ -166,6 +205,8 @@ declare module "react-native-twilio-video-webrtc" {
     publishLocalVideo: () => void;
     unpublishLocalVideo: () => void;
     sendString: (message: string) => void;
+    setStereoEnabled: (enabled: boolean) => Promise<boolean>;
+    setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
   }
 
   class TwilioVideoLocalView extends React.Component<
@@ -177,4 +218,14 @@ declare module "react-native-twilio-video-webrtc" {
   > {}
 
   export { TwilioVideoLocalView, TwilioVideoParticipantView, TwilioVideo };
+
+  export class TwilioStereoTonePlayer {
+    preload: (filename: string) => Promise<boolean>;
+    play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;
+    pause: () => void;
+    setVolume: (volume: number) => void;
+    setPlaybackSpeed: (speed: number) => void;
+    release: (filename: string) => void;
+    terminate: () => void;
+  }
 }
