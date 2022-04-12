@@ -212,6 +212,7 @@ RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
 }
 
 RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+    NSLog(@"RNTwilioVideoWebRTC - startLocalAudio - useCustomAudioDevice: %d", useCustomAudioDevice);
     
     // If this is enabled we use our custom Twilio Audio Device for audio rendering
     if (useCustomAudioDevice) {

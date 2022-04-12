@@ -167,7 +167,7 @@ export default class TwilioVideo extends Component {
     
     this.setStereoEnabled = this.setStereoEnabled.bind(this)
     // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
-    this.usesCustomAudioDevice = true;
+    this.usesCustomAudioDevice = true; // TODO add prop
   }
 
   componentDidMount () {
