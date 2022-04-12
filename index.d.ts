@@ -112,6 +112,9 @@ declare module "react-native-twilio-video-webrtc" {
 
     onStatsReceived?: (data: any) => void;
     onDataTrackMessageReceived?: DataTrackEventCb;
+
+    useCustomAudioDevice?: boolean;
+
     // iOS only
     autoInitializeCamera?: boolean;    
     ref?: React.Ref<any>;

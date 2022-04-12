@@ -156,6 +156,10 @@ export default class TwilioVideo extends Component {
      * camera will require calling `_startLocalVideo`.
      */
     autoInitializeCamera: PropTypes.bool,
+    /**
+     * Flag that enables the custom audio device. Required for `setStereoEnabled`
+     */
+     useCustomAudioDevice: PropTypes.bool,
     ...View.propTypes
   }
 
@@ -166,8 +170,8 @@ export default class TwilioVideo extends Component {
     this._eventEmitter = new NativeEventEmitter(TWVideoModule)
     
     this.setStereoEnabled = this.setStereoEnabled.bind(this)
-    // We expose this to the JS layer to allow avoiding the whole custom audio device code path via CodePush update if there is a critical bug
-    this.usesCustomAudioDevice = true; // TODO add prop
+
+    this.useCustomAudioDevice = !!props.useCustomAudioDevice;
   }
 
   componentDidMount () {
@@ -336,7 +340,7 @@ export default class TwilioVideo extends Component {
   }
 
   _startLocalAudio () {
-    TWVideoModule.startLocalAudio(this.usesCustomAudioDevice)
+    TWVideoModule.startLocalAudio(this.useCustomAudioDevice)
   }
 
   _stopLocalAudio () {
