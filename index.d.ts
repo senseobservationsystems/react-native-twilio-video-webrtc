@@ -88,6 +88,12 @@ declare module "react-native-twilio-video-webrtc" {
   
   export type DominantSpeakerChangedCb = (d: DominantSpeakerChangedEventArgs) => void;
 
+  export type LocalParticipantSupportedCodecsCbEventArgs = {
+    supportedCodecs: Array<string>;
+  }
+
+  export type LocalParticipantSupportedCodecsCb = (d: LocalParticipantSupportedCodecsCbEventArgs) => void;
+
   export type TwilioVideoProps = ViewProps & {
     onCameraDidStart?: () => void;
     onCameraDidStopRunning?: (err: any) => void;
@@ -109,6 +115,7 @@ declare module "react-native-twilio-video-webrtc" {
     onRoomParticipantDidConnect?: ParticipantEventCb;
     onRoomParticipantDidDisconnect?: ParticipantEventCb;
     onNetworkQualityLevelsChanged?: NetworkLevelChangeEventCb;
+    onLocalParticipantSupportedCodecs?: LocalParticipantSupportedCodecsCb;
 
     onStatsReceived?: (data: any) => void;
     onDataTrackMessageReceived?: DataTrackEventCb;
@@ -152,7 +159,7 @@ declare module "react-native-twilio-video-webrtc" {
     enableAudio?: boolean;
     enableVideo?: boolean;
     encodingParameters?: {
-      enableH264Codec?: boolean;
+      enableH264Codec: boolean;
       // if audioBitrate OR videoBitrate is provided, you must provide both
       audioBitrate?: number;
       videoBitrate?: number;
@@ -169,7 +176,7 @@ declare module "react-native-twilio-video-webrtc" {
     enableAudio?: boolean;
     enableVideo?: boolean;
     encodingParameters?: {
-      enableH264Codec?: boolean;
+      enableH264Codec: boolean;
       // if audioBitrate OR videoBitrate is provided, you must provide both
       audioBitrate?: number;
       videoBitrate?: number;
