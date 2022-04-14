@@ -1,6 +1,4 @@
-package com.twiliorn.library;
-
-import android.util.Log;
+package com.twiliorn.library.niceday;
 
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.Event;
