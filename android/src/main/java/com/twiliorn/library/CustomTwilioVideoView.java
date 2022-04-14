@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
@@ -64,13 +65,11 @@ import com.twilio.video.RemoteVideoTrack;
 import com.twilio.video.RemoteVideoTrackPublication;
 import com.twilio.video.RemoteVideoTrackStats;
 import com.twilio.video.Room;
-import com.twilio.video.Room.State;
 import com.twilio.video.StatsListener;
 import com.twilio.video.StatsReport;
 import com.twilio.video.TrackPublication;
 import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
-import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoFormat;
 import com.twilio.video.VideoCodec;
 
@@ -82,6 +81,7 @@ import tvi.webrtc.HardwareVideoDecoderFactory;
 import tvi.webrtc.VideoCodecInfo;
 import com.twilio.video.H264Codec;
 import com.twilio.video.Vp8Codec;
+import com.twiliorn.library.niceday.NDExtra;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -126,7 +126,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean maintainVideoTrackInBackground = false;
     private String cameraType = "";
     private boolean enableH264Codec = false;
-
+    private final NDExtra ndExtra =new NDExtra();
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({Events.ON_CAMERA_SWITCHED,
             Events.ON_VIDEO_CHANGED,
@@ -247,7 +247,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     // ===== SETUP =================================================================================
 
     private VideoFormat buildVideoFormat() {
-        return new VideoFormat(VideoDimensions.CIF_VIDEO_DIMENSIONS, 15);
+        return new VideoFormat(this.ndExtra.maxCaptureDimensions, this.ndExtra.maxCaptureFPS);
     }
 
     private CameraCapturer createCameraCaputer(Context context, String cameraId) {
@@ -448,6 +448,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             boolean dominantSpeakerEnabled,
             boolean maintainVideoTrackInBackground,
             String cameraType,
+            ReadableMap bandwidthProfileOptions,
+            ReadableMap encodingParameters,
             boolean enableH264Codec
     ) {
         this.roomName = roomName;
@@ -461,7 +463,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
 
         // Share your microphone
         localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
-
+        ndExtra.setExtraParams(encodingParameters, bandwidthProfileOptions);
+        isVideoEnabled = ndExtra.isVideoEnabled;
         if (cameraCapturer == null && enableVideo) {
             boolean createVideoStatus = createLocalVideo(enableVideo, cameraType);
             if (!createVideoStatus) {
@@ -551,7 +554,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                     NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL,
                     NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL));
         }
-
+        ndExtra.applyExtraParamsTo(connectOptionsBuilder);
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
 
@@ -702,7 +705,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         }
     }
 
-    public void toggleVideo(boolean enabled) {
+    public void toggleVideo(boolean enabled, ReadableMap cameraSettings) {
+        ndExtra.applyCameraSettings(cameraSettings);
         isVideoEnabled = enabled;
 
         if (cameraCapturer == null && enabled) {
@@ -1337,5 +1341,13 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 pushEvent(CustomTwilioVideoView.this, ON_DATATRACK_MESSAGE_RECEIVED, event);
             }
         };
+    }
+
+    public void setTrackPriority(String trackSid, String trackPriorityString) {
+        ndExtra.setTrackPriority(trackSid, trackPriorityString, room);
+    }
+    public void toggleStereo(boolean enabled) {
+        Log.d(TAG, "toggleStereo " + enabled);
+        ndExtra.toggleStereo();
     }
 }
