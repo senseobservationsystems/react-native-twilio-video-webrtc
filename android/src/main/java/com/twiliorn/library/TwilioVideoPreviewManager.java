@@ -54,6 +54,11 @@ public class TwilioVideoPreviewManager extends SimpleViewManager<TwilioVideoPrev
         view.applyZOrder(applyZOrder);
     }
 
+    @ReactProp(name = "applyZOrder", defaultBoolean = true)
+    public void setApplyZOrder(TwilioVideoPreview view, boolean applyZOrder) {
+      view.applyZOrder(applyZOrder);
+    }
+
     @Override
     @Nullable
     public Map getExportedCustomDirectEventTypeConstants() {
