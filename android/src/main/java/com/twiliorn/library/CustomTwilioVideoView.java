@@ -1346,8 +1346,12 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     public void setTrackPriority(String trackSid, String trackPriorityString) {
         ndExtra.setTrackPriority(trackSid, trackPriorityString, room);
     }
+
+    /**
+     * only available on iOS
+     * @param enabled
+     */
     public void toggleStereo(boolean enabled) {
-        Log.d(TAG, "toggleStereo " + enabled);
-        ndExtra.toggleStereo();
+        Log.d("RNTwilioVideo", "toggleStereo only available on iOS");
     }
 }

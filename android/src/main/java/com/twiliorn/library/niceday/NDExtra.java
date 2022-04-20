@@ -196,11 +196,7 @@ public class NDExtra {
             this.maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
         }
     }
-
-    public void toggleStereo() {
-        //TODO
-    }
-
+    
     public void setTrackPriority(String trackSid, String trackPriorityString, Room room) {
         TrackPriority priority = parsePriorityString(trackPriorityString);
 
