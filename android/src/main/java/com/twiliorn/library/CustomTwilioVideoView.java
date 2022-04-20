@@ -565,7 +565,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             int deviceType = devicesInfo[i].getType();
             if (
                 deviceType == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-                deviceType == AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+                deviceType == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                deviceType == AudioDeviceInfo.TYPE_USB_HEADSET
             ) {
                 hasNonSpeakerphoneDevice = true;
             }
