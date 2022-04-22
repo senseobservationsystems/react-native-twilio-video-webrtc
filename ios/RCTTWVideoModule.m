@@ -641,6 +641,13 @@ RCT_EXPORT_METHOD(disconnect) {
   [self clearCameraInstance];
   [self stopLocalAudio];
   [self.room disconnect];
+
+  self.camera = nil;
+  self.localVideoTrack = nil;
+  self.localAudioTrack = nil;
+  self.localDataTrack = nil;
+  self.localParticipant = nil;
+  self.room = nil;
 }
 
 - (void)clearCameraInstance {
