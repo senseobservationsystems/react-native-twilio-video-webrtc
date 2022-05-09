@@ -6,6 +6,9 @@ import android.util.Log;
 import com.twilio.video.TrackPriority;
 import com.twilio.video.VideoDimensions;
 
+/**
+This class contains helpers that can be used anywhere.
+ */
 public class NDHelper {
     private static final String TAG = "NDHelper";
     public static VideoDimensions parseDimensionsString(@Nullable String dimensions) {

@@ -24,7 +24,11 @@ import com.twilio.video.VideoDimensions;
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+This class contains changes on CustomTwilioVideoView.
+We put it on separate file to minimizes conflict when merging from upstream.
+NOTE: This class should only be used on CustomTwilioVideoView.
+ */
 public class NDExtra {
     private static final String TAG = "BandwidthProfile";
     private static final VideoDimensions DEFAULT_MAX_CAPTURE_RESOLUTION = VideoDimensions.CIF_VIDEO_DIMENSIONS;

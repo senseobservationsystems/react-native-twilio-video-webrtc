@@ -52,6 +52,18 @@ for its `RNVideoViewGroup` class. This will allow us to retrigger the video layo
 There's a bug where mirroring of local video sometimes isn't set correctly.
 Especially if there are more than one local video being rendered.
 
+### Additional info for Android
+
+Most of changes that we add located in `com.twiliorn.library.niceday` package:
+
+- `NDExtra.java`: Extra methods and parameters that we added on `CustomTwilioVideoView`.
+
+- `NDHelper.java`: Helpers, can be used anywhere.
+
+- `TwilioEvent.java`: Custom TwilioEvent.
+
+- `TwilioStereoTonePlayer.java`:  To enable stereo output (used in EMDR)
+
 ---
 
 Upstream README continues below…
