@@ -69,7 +69,3 @@ On iOS, you can only play stereo sounds from the StereoTonePlayer.
 Yes, for IOS we need to create a custom audio device which fundamentally changes the way audio is processed.
 
 - HELP, I am seeing native crashes in production if we do normal Twilio calls with this repo!
-
-There is an [emergency kill switch](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/blob/niceday/twilio-emdr-ready/src/TwilioVideo.ios.js#L162) in TwilioVideo.ios.js with the property `this.usesCustomAudioDevice = true;` 
-
-If you set this constant to `false`  and don't call `setStereoEnabled(true)` then this repo should function exactly the same as without having any of the code required for stereo calls.

@@ -8,7 +8,7 @@
  */
 package com.twiliorn.library;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
@@ -88,7 +88,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 String cameraType = args.getString(8);
                 ReadableMap bandwidthProfileOptions = args.getMap(9);
                 ReadableMap encodingParameters = args.getMap(10);
-                boolean enableH264Codec = encodingParameters.getBoolean("enableH264Codec");
+                boolean enableH264Codec = encodingParameters.hasKey("enableH264Codec") ? encodingParameters.getBoolean("enableH264Codec") : false;
                 view.connectToRoomWrapper(
                     roomName,
                     accessToken,
