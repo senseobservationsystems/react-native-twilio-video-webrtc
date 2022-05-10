@@ -212,6 +212,7 @@ RCT_EXPORT_METHOD(startLocalVideo:(BOOL)enabled) {
 }
 
 RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+    NSLog(@"RNTwilioVideoWebRTC - startLocalAudio - useCustomAudioDevice: %d", useCustomAudioDevice);
     
     // If this is enabled we use our custom Twilio Audio Device for audio rendering
     if (useCustomAudioDevice) {
@@ -640,6 +641,15 @@ RCT_EXPORT_METHOD(disconnect) {
   [self clearCameraInstance];
   [self stopLocalAudio];
   [self.room disconnect];
+
+  // ND Make sure the internal media factory is cleaned up to avoid an exception when switching to custom audio device
+  // https://github.com/twilio/video-quickstart-ios/issues/230
+  self.camera = nil;
+  self.localVideoTrack = nil;
+  self.localAudioTrack = nil;
+  self.localDataTrack = nil;
+  self.localParticipant = nil;
+  self.room = nil;
 }
 
 - (void)clearCameraInstance {
