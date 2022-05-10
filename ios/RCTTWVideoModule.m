@@ -642,6 +642,8 @@ RCT_EXPORT_METHOD(disconnect) {
   [self stopLocalAudio];
   [self.room disconnect];
 
+  // ND Make sure the internal media factory is cleaned up to avoid an exception when switching to custom audio device
+  // https://github.com/twilio/video-quickstart-ios/issues/230
   self.camera = nil;
   self.localVideoTrack = nil;
   self.localAudioTrack = nil;
