@@ -3,6 +3,9 @@ package com.twiliorn.library.niceday;
 import static com.twiliorn.library.niceday.NDHelper.parseDimensionsString;
 import static com.twiliorn.library.niceday.NDHelper.parsePriorityString;
 
+import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -25,11 +28,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
-This class contains changes on CustomTwilioVideoView.
-We put it on separate file to minimizes conflict when merging from upstream.
-NOTE: This class should only be used on CustomTwilioVideoView.
+ * This class contains changes on CustomTwilioVideoView.
+ * We put it on separate file to minimizes conflict when merging from upstream.
+ * NOTE: This class should only be used on CustomTwilioVideoView.
  */
 public class NDExtra {
+    public static final String BT_INTENT = "com.twiliorn.library.niceday.bluetooth";
     private static final String TAG = "BandwidthProfile";
     private static final VideoDimensions DEFAULT_MAX_CAPTURE_RESOLUTION = VideoDimensions.CIF_VIDEO_DIMENSIONS;
     private static final int DEFAULT_MAX_CAPTURE_FPS = 25;
@@ -40,6 +44,22 @@ public class NDExtra {
     public boolean isVideoEnabled;
     public VideoDimensions maxCaptureDimensions = DEFAULT_MAX_CAPTURE_RESOLUTION;
     public int maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
+    Context appContext;
+    Handler handler = new Handler();
+    int delay = 2000;
+    Runnable run = new Runnable() {
+        public void run() {
+            Log.d(TAG,"RUNNING");
+            Intent intent = new Intent(BT_INTENT);
+            appContext.sendBroadcast(intent);
+            handler.postDelayed(this, delay);
+        }
+    };
+
+    public NDExtra(Context appContext) {
+        this.appContext = appContext;
+        btHeadsetListener();
+    }
 
     public BandwidthProfileOptions prepareBandwidthProfile(ReadableMap options) {
         BandwidthProfileMode mode = null;
@@ -200,7 +220,7 @@ public class NDExtra {
             this.maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
         }
     }
-    
+
     public void setTrackPriority(String trackSid, String trackPriorityString, Room room) {
         TrackPriority priority = parsePriorityString(trackPriorityString);
 
@@ -215,5 +235,18 @@ public class NDExtra {
                 }
             }
         }
+    }
+
+    public void cleanUp() {
+        try {
+            handler.removeCallbacksAndMessages(null);
+            Log.d(TAG,"cleanup");
+        } catch (Exception ignored) {
+            Log.d(TAG,ignored.getMessage());
+        }
+    }
+
+    public void btHeadsetListener() {
+        handler.postDelayed(run, delay);
     }
 }
