@@ -126,7 +126,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     private boolean maintainVideoTrackInBackground = false;
     private String cameraType = "";
     private boolean enableH264Codec = false;
-    private final NDExtra ndExtra =new NDExtra();
+    private final NDExtra ndExtra =new NDExtra(getContext());
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({Events.ON_CAMERA_SWITCHED,
             Events.ON_VIDEO_CHANGED,
@@ -232,7 +232,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
          */
         audioManager = (AudioManager) themedReactContext.getSystemService(Context.AUDIO_SERVICE);
         myNoisyAudioStreamReceiver = new BecomingNoisyReceiver();
-        intentFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_HEADSET_PLUG);
+        intentFilter.addAction(NDExtra.BT_INTENT);
 
         // Create the local data track
         // localDataTrack = LocalDataTrack.create(this);
@@ -638,7 +640,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         @Override
         public void onReceive(Context context, Intent intent) {
 //            audioManager.setSpeakerphoneOn(true);
-            if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
+            if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) || NDExtra.BT_INTENT.equals(intent.getAction())) {
                 setAudioType();
             }
         }
@@ -670,6 +672,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             cameraCapturer.stopCapture();
             cameraCapturer = null;
         }
+        ndExtra.cleanUp();
     }
 
     // ===== SEND STRING ON DATA TRACK ======================================================================
