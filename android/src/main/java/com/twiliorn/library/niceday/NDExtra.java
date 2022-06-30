@@ -37,7 +37,7 @@ public class NDExtra {
     public int videoBitrate = 0;    // Use default video bitrate
     public BandwidthProfileOptions bandwidthProfile = null;
     public boolean isVideoEnabled;
-    public VideoDimensions maxCaptureDimensions = parseDimensionsString("'640x480'");
+    public VideoDimensions maxCaptureDimensions = parseDimensionsString("640x480");
     public int maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
     Context appContext;
     Handler handler = new Handler();
