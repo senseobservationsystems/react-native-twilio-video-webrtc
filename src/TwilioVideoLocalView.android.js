@@ -11,14 +11,12 @@ import PropTypes from 'prop-types'
 
 const propTypes = {
   ...View.propTypes,
-  // Whether to apply Z ordering to this view.  Setting this to true will cause
-  // this view to appear above other Twilio Video views.
-  applyZOrder: PropTypes.bool,
   /**
    * How the video stream should be scaled to fit its
    * container.
    */
-  scaleType: PropTypes.oneOf(['fit', 'fill'])
+   scaleType: PropTypes.oneOf(['fit', 'fill']),
+   applyZOrder: PropTypes.bool,
 }
 
 class TwilioVideoPreview extends React.Component {

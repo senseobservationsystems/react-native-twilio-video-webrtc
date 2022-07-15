@@ -1,8 +1,95 @@
+# Twilio Video (WebRTC) for React Native
+
+NiceDay fork of [react-native-twilio-video-webrtc](https://github.com/blackuy/react-native-twilio-video-webrtc) used in [goalie-2-mobile-app](https://github.com/senseobservationsystems/goalie-2-mobile-app).
+
+## Context of Forking
+
+### Where is this forked repo used?
+
+In the NiceDay app.
+
+### Why do we have this repo forked?
+
+This lib provides the base React Component for app to implement its call screen. Includes in this React Component, is its native bridging with Twilio Native Component, the initialization and management of Twilio process. While in the development of goalie mobile app's call screen, we found some bug, and thus, we fork this repo. Details about the bugs itself is below.
+
+### When did we fork it?
+
+Around the end of 2019, when we start to implement our own video call screen.
+
+### What is the price of removing this repo?
+
+Luckily, we already create a bit of abstraction inside goalie mobile app, such that, the screen itself doesn't directly touch the components from this lib. Thus, if we want to remove this repo, all we need to find/create a lib to do the native bridging and Twilio's management.
+
+## Objective of Forking
+
+We fork this repo as sense to implement certain features and fix some bugs.
+
+### Support Playing Back Stereo Audio During A Call
+
+To build the EMDR feature in NiceDay we need to play back a stereo audio loop while the video call is ongoing. This is not possible with the upstream repo as the underlying WebRTC implementation for iOS forces the audio device to be mono.
+
+This library creates a [custom audio device](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/blob/niceday-master/ios/RCTTWCustomAudioDevice.m) which is setup to be in stereo and the manually mixes the Twilio audio stream with a stereo looping audio to allow EMDR therapy.
+
+The custom audio device implementation above is based on the [Twilio Audio Device Example](https://github.com/twilio/video-quickstart-ios/tree/master/AudioDeviceExample)
+
+### Support Audio Call
+
+The original repo always create video track. Even when the app specify that the call is audio only.
+This is also seen when app doesn't give permissions for camera and is crashing at the start of the call.
+
+To achieve this, we change the implementation of how call is being started, and add logic to
+create video track in the middle of a call in case user toggled their camera button.
+
+### Support changing video dimension/ratio
+
+To achieve this, we add new props for its TwilioVideo component called `scalesType`.
+This will give us flexibility to set whether the video should be shown in `Fill` or `Fit` Aspect Ratio.
+
+Specifically in Android, to support this, we need to add implementation of `requestLayout` and `measureAndLayout`
+for its `RNVideoViewGroup` class. This will allow us to retrigger the video layout when user change the aspect ratio.
+
+### Bug on mirroring of local video
+
+There's a bug where mirroring of local video sometimes isn't set correctly.
+Especially if there are more than one local video being rendered.
+
+### Additional info for Android
+
+Most of changes that we add located in `com.twiliorn.library.niceday` package:
+
+- `NDExtra.java`: Extra methods and parameters that we added on `CustomTwilioVideoView`.
+
+- `NDHelper.java`: Helpers, can be used anywhere.
+
+- `TwilioEvent.java`: Custom TwilioEvent.
+
+- `TwilioStereoTonePlayer.java`: To enable stereo output (used in EMDR)
+
+## Contributing
+
+- [In `goalie-2-mobile-app`] Track [issues](https://github.com/senseobservationsystems/goalie-2-mobile-app/issues)
+- [In this repo] Fork `niceday-master` (e.g. `1234-fix-something`)
+- [In this repo] Fix something!
+- [In this repo] Create a 'child' PR targeting `niceday-master`
+- [In `goalie-2-mobile-app`] Create a corresponding 'parent' PR targeting this branch in `package.json` (e.g. `git+ssh://git@github.com/senseobservationsystems/react-native-twilio-video-webrtc.git#1234-fix-something`)
+- Wait for both PR to be approved
+- [In this repo] Once both PRs are approved, merge the child PR into `niceday-master`
+- [In this repo] [Create a new release](https://github.com/senseobservationsystems/react-native-twilio-video-webrtc/releases/new) targeting `niceday-master` with the next semantic version (e.g. `v1.1.0`)
+- [In `goalie-2-mobile-app`] Update the parent PR to use the new release in `package.json` (e.g. `git+ssh://git@github.com/senseobservationsystems/react-native-twilio-video-webrtc.git#v1.1.0`)
+- [In `goalie-2-mobile-app`] Re-request review & merge the parent PR
+
+---
+
+_Upstream (blackuy) README.md continues below…_
+
+---
+
 ![GitHub Logo](/logo.png)
 
 # Twilio Video (WebRTC) for React Native
 
 Platforms:
+
 - iOS
 - Android
 
@@ -134,7 +221,7 @@ android {
 }
 ```
 
-Now you're ready to load the package in `MainApplication.java`.  In the imports section, add this:
+Now you're ready to load the package in `MainApplication.java`. In the imports section, add this:
 
 ```java
 import com.twiliorn.library.TwilioPackage;
@@ -164,7 +251,7 @@ For most applications, you'll want to add camera and audio permissions to your `
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 ```
 
-Newer versions of Android have a different permissions model.  You will need to use the `PermissionsAndroid`
+Newer versions of Android have a different permissions model. You will need to use the `PermissionsAndroid`
 class in `react-native` in order to request the `CAMERA` and `RECORD_AUDIO` permissions.
 
 ### Additional Tips
@@ -190,6 +277,7 @@ this library are not stripped. To do that, add these two lines to `proguard-rule
 ```
 
 ## Docs
+
 You can see the documentation [here](./docs).
 
 ## Usage
@@ -200,8 +288,8 @@ We have three important components to understand:
 import {
   TwilioVideo,
   TwilioVideoLocalView,
-  TwilioVideoParticipantView
-} from 'react-native-twilio-video-webrtc'
+  TwilioVideoParticipantView,
+} from "react-native-twilio-video-webrtc";
 ```
 
 - `TwilioVideo` / is responsible for connecting to rooms, events delivery and camera/audio.
@@ -210,28 +298,28 @@ import {
 
 Here you can see a complete example of a simple application that uses almost all the apis:
 
-````javascript
-import React, { Component, useRef } from 'react';
+```javascript
+import React, { Component, useRef } from "react";
 import {
   TwilioVideoLocalView,
   TwilioVideoParticipantView,
-  TwilioVideo
-} from 'react-native-twilio-video-webrtc';
+  TwilioVideo,
+} from "react-native-twilio-video-webrtc";
 
 const Example = (props) => {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [status, setStatus] = useState('disconnected');
+  const [status, setStatus] = useState("disconnected");
   const [participants, setParticipants] = useState(new Map());
   const [videoTracks, setVideoTracks] = useState(new Map());
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState("");
   const twilioRef = useRef(null);
 
   const _onConnectButtonPress = () => {
     twilioRef.current.connect({ accessToken: token });
-    setStatus('connecting');
-  }
-  
+    setStatus("connecting");
+  };
+
   const _onEndButtonPress = () => {
     twilioRef.current.disconnect();
   };
@@ -239,33 +327,33 @@ const Example = (props) => {
   const _onMuteButtonPress = () => {
     twilioRef.current
       .setLocalAudioEnabled(!isAudioEnabled)
-      .then(isEnabled => setIsAudioEnabled(isEnabled));
+      .then((isEnabled) => setIsAudioEnabled(isEnabled));
   };
 
   const _onFlipButtonPress = () => {
     twilioRef.current.flipCamera();
   };
 
-  const _onRoomDidConnect = ({roomName, error}) => {
-    console.log('onRoomDidConnect: ', roomName);
+  const _onRoomDidConnect = ({ roomName, error }) => {
+    console.log("onRoomDidConnect: ", roomName);
 
-    setStatus('connected');
+    setStatus("connected");
   };
 
   const _onRoomDidDisconnect = ({ roomName, error }) => {
-    console.log('[Disconnect]ERROR: ', error);
+    console.log("[Disconnect]ERROR: ", error);
 
-    setStatus('disconnected');
+    setStatus("disconnected");
   };
 
-  const _onRoomDidFailToConnect = error => {
-    console.log('[FailToConnect]ERROR: ', error);
+  const _onRoomDidFailToConnect = (error) => {
+    console.log("[FailToConnect]ERROR: ", error);
 
-    setStatus('disconnected');
+    setStatus("disconnected");
   };
 
   const _onParticipantAddedVideoTrack = ({ participant, track }) => {
-    console.log('onParticipantAddedVideoTrack: ', participant, track);
+    console.log("onParticipantAddedVideoTrack: ", participant, track);
 
     setVideoTracks(
       new Map([
@@ -274,12 +362,12 @@ const Example = (props) => {
           track.trackSid,
           { participantSid: participant.sid, videoTrackSid: track.trackSid },
         ],
-      ]),
+      ])
     );
   };
 
   const _onParticipantRemovedVideoTrack = ({ participant, track }) => {
-    console.log('onParticipantRemovedVideoTrack: ', participant, track);
+    console.log("onParticipantRemovedVideoTrack: ", participant, track);
 
     const videoTracksLocal = videoTracks;
     videoTracksLocal.delete(track.trackSid);
@@ -289,84 +377,78 @@ const Example = (props) => {
 
   return (
     <View style={styles.container}>
-      {
-        status === 'disconnected' &&
+      {status === "disconnected" && (
         <View>
-          <Text style={styles.welcome}>
-            React Native Twilio Video
-          </Text>
+          <Text style={styles.welcome}>React Native Twilio Video</Text>
           <TextInput
             style={styles.input}
-            autoCapitalize='none'
+            autoCapitalize="none"
             value={token}
-            onChangeText={(text) => setToken(text)}>
-          </TextInput>
+            onChangeText={(text) => setToken(text)}
+          ></TextInput>
           <Button
             title="Connect"
             style={styles.button}
-            onPress={_onConnectButtonPress}>
-          </Button>
+            onPress={_onConnectButtonPress}
+          ></Button>
         </View>
-      }
+      )}
 
-      {
-        (status === 'connected' || status === 'connecting') &&
-          <View style={styles.callContainer}>
-          {
-            status === 'connected' &&
+      {(status === "connected" || status === "connecting") && (
+        <View style={styles.callContainer}>
+          {status === "connected" && (
             <View style={styles.remoteGrid}>
-              {
-                Array.from(videoTracks, ([trackSid, trackIdentifier]) => {
-                  return (
-                    <TwilioVideoParticipantView
-                      style={styles.remoteVideo}
-                      key={trackSid}
-                      trackIdentifier={trackIdentifier}
-                    />
-                  )
-                })
-              }
+              {Array.from(videoTracks, ([trackSid, trackIdentifier]) => {
+                return (
+                  <TwilioVideoParticipantView
+                    style={styles.remoteVideo}
+                    key={trackSid}
+                    trackIdentifier={trackIdentifier}
+                  />
+                );
+              })}
             </View>
-          }
-          <View
-            style={styles.optionsContainer}>
+          )}
+          <View style={styles.optionsContainer}>
             <TouchableOpacity
               style={styles.optionButton}
-              onPress={_onEndButtonPress}>
-              <Text style={{fontSize: 12}}>End</Text>
+              onPress={_onEndButtonPress}
+            >
+              <Text style={{ fontSize: 12 }}>End</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.optionButton}
-              onPress={_onMuteButtonPress}>
-              <Text style={{fontSize: 12}}>{ isAudioEnabled ? "Mute" : "Unmute" }</Text>
+              onPress={_onMuteButtonPress}
+            >
+              <Text style={{ fontSize: 12 }}>
+                {isAudioEnabled ? "Mute" : "Unmute"}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.optionButton}
-              onPress={_onFlipButtonPress}>
-              <Text style={{fontSize: 12}}>Flip</Text>
+              onPress={_onFlipButtonPress}
+            >
+              <Text style={{ fontSize: 12 }}>Flip</Text>
             </TouchableOpacity>
-            <TwilioVideoLocalView
-              enabled={true}
-              style={styles.localVideo}
-            />
+            <TwilioVideoLocalView enabled={true} style={styles.localVideo} />
           </View>
         </View>
-      }
+      )}
 
       <TwilioVideo
-        ref={ twilioRef }
-        onRoomDidConnect={ _onRoomDidConnect }
-        onRoomDidDisconnect={ _onRoomDidDisconnect }
-        onRoomDidFailToConnect= { _onRoomDidFailToConnect }
-        onParticipantAddedVideoTrack={ _onParticipantAddedVideoTrack }
-        onParticipantRemovedVideoTrack= { _onParticipantRemovedVideoTrack }
+        ref={twilioRef}
+        onRoomDidConnect={_onRoomDidConnect}
+        onRoomDidDisconnect={_onRoomDidDisconnect}
+        onRoomDidFailToConnect={_onRoomDidFailToConnect}
+        onParticipantAddedVideoTrack={_onParticipantAddedVideoTrack}
+        onParticipantRemovedVideoTrack={_onParticipantRemovedVideoTrack}
       />
     </View>
   );
-}
+};
 
-AppRegistry.registerComponent('Example', () => Example);
-````
+AppRegistry.registerComponent("Example", () => Example);
+```
 
 ## Run the Example Application
 
@@ -379,18 +461,18 @@ To run the example application:
 
 ## Migrating from 1.x to 2.x
 
-* Make sure your pod dependencies are updated.  If you manually specified a pod version, you'll want to update it as follows:
+- Make sure your pod dependencies are updated. If you manually specified a pod version, you'll want to update it as follows:
 
 ```
   s.dependency 'TwilioVideo', '~> 2.2.0'
 ```
 
-* Both participants and tracks are uniquely identified by their `sid`/`trackSid` field.
-The `trackId` field no longer exists and should be replaced by `trackSid`.  Commensurate with this change,
-participant views now expect `participantSid` and `videoTrackSid` keys in the `trackIdentity` prop (instead of
-`identity` and `trackId`).
+- Both participants and tracks are uniquely identified by their `sid`/`trackSid` field.
+  The `trackId` field no longer exists and should be replaced by `trackSid`. Commensurate with this change,
+  participant views now expect `participantSid` and `videoTrackSid` keys in the `trackIdentity` prop (instead of
+  `identity` and `trackId`).
 
-* Make sure you're listening to participant events via `onParticipant{Added/Removed}VideoTrack` rather than `onParticipant{Enabled/Disabled}Track`.
+- Make sure you're listening to participant events via `onParticipant{Added/Removed}VideoTrack` rather than `onParticipant{Enabled/Disabled}Track`.
 
 ## Contact
 
