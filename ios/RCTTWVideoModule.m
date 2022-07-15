@@ -496,8 +496,8 @@ RCT_EXPORT_METHOD(getStats) {
 -(TVIVideoBandwidthProfileOptions*)prepareBandwidthProfile:(NSDictionary *)bandwidthProfileOptions {
     return [TVIVideoBandwidthProfileOptions optionsWithBlock:^(TVIVideoBandwidthProfileOptionsBuilder * _Nonnull builder) {
         TVIBandwidthProfileMode mode = TVIBandwidthProfileModeCollaboration;
-        builder.maxSubscriptionBitrate = 2000;
-        builder.dominantSpeakerPriority = [self parsePriorityString:(NSString *)[bandwidthProfileOptions @"HIGH"]];
+        builder.maxSubscriptionBitrate = @2000;
+        builder.dominantSpeakerPriority = [self parsePriorityString:@"HIGH"];
     }];
 }
 
