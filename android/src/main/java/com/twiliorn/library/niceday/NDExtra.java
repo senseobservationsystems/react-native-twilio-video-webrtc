@@ -54,7 +54,7 @@ public class NDExtra {
     public NDExtra(Context appContext) {
         this.appContext = appContext;
         prepareBandwidthProfile();
-        //btHeadsetListener();
+        btHeadsetListener();
     }
 
     public void prepareBandwidthProfile() {
