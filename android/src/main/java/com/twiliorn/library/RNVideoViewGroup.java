@@ -31,7 +31,6 @@ public class RNVideoViewGroup extends ViewGroup {
     private int videoWidth = 0;
     private int videoHeight = 0;
     private final Object layoutSync = new Object();
-    private int scalesType = 0;
     private RendererCommon.ScalingType scalingType = RendererCommon.ScalingType.SCALE_ASPECT_FILL;
     private final RCTEventEmitter eventEmitter;
 
@@ -89,10 +88,6 @@ public class RNVideoViewGroup extends ViewGroup {
         this.scalingType = scalingType;
     }
 
-    public void setScalesType(int scalesType) {
-        this.scalesType = scalesType;
-    }
-
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int height = b - t;
@@ -100,10 +95,8 @@ public class RNVideoViewGroup extends ViewGroup {
         if (height == 0 || width == 0) {
             l = t = r = b = 0;
         } else {
-            RendererCommon.ScalingType overriddenScaleType;
             int videoHeight;
             int videoWidth;
-
             synchronized (layoutSync) {
                 videoHeight = this.videoHeight;
                 videoWidth = this.videoWidth;
@@ -115,11 +108,8 @@ public class RNVideoViewGroup extends ViewGroup {
                 videoWidth = 640;
             }
 
-            if (this.scalesType == 1) overriddenScaleType = RendererCommon.ScalingType.SCALE_ASPECT_FIT;
-            else overriddenScaleType = RendererCommon.ScalingType.SCALE_ASPECT_FILL;
-
             Point displaySize = RendererCommon.getDisplaySize(
-                    overriddenScaleType,
+                    this.scalingType,
                     videoWidth / (float) videoHeight,
                     width,
                     height
