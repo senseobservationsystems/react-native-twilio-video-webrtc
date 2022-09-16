@@ -7,7 +7,7 @@
  *   Jonathan Chang <slycoder@gmail.com>
  */
 
-import {
+ import {
   Platform,
   UIManager,
   View,
@@ -246,6 +246,11 @@ class CustomTwilioVideoView extends Component {
 
   setBluetoothHeadsetConnected (enabled) {
     this.runCommand(nativeEvents.toggleBluetoothHeadset, [enabled])
+    return Promise.resolve(enabled)
+  }
+
+  setStereoEnabled (enabled) {
+    //only on ios
     return Promise.resolve(enabled)
   }
 

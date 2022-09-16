@@ -209,7 +209,7 @@ export default class TwilioVideo extends Component {
      * @param {*} trackPriority the priority of the track. Can be low, standard, high or null
      */
     setTrackPriority (trackSid, trackPriority) {
-      //TWVideoModule.setTrackPriority(trackSid, trackPriority) //not implemented on ios native yet
+      TWVideoModule.setTrackPriority(trackSid, trackPriority)
     }
 
   /**
