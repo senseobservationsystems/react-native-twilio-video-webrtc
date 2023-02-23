@@ -69,5 +69,6 @@
 -dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
 -dontwarn okio.**
 
+-keep class org.webrtc.** { *; }
 -keep class com.twilio.** { *; }
 -keep class tvi.webrtc.** { *; }
