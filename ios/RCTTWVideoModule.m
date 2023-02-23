@@ -64,12 +64,13 @@ TVIVideoFormat *RCTTWVideoModuleCameraSourceSelectVideoFormatBySize(AVCaptureDev
 }
 
 
-@interface RCTTWVideoModule () <TVIRemoteDataTrackDelegate, TVIRemoteParticipantDelegate, TVIRoomDelegate, TVICameraSourceDelegate, TVILocalParticipantDelegate>
+@interface RCTTWVideoModule () <TVIRemoteDataTrackDelegate, TVIRemoteParticipantDelegate, TVIRoomDelegate, TVICameraSourceDelegate, TVILocalParticipantDelegate, TVIAppScreenSourceDelegate>
 
 @property (strong, nonatomic) TVICameraSource *camera;
 @property (strong, nonatomic) TVILocalVideoTrack* localVideoTrack;
 @property (strong, nonatomic) TVILocalAudioTrack* localAudioTrack;
 @property (strong, nonatomic) TVILocalDataTrack* localDataTrack;
+@property (strong, nonatomic) TVIAppScreenSource *screen;
 @property (strong, nonatomic) TVILocalParticipant* localParticipant;
 @property (strong, nonatomic) TVIRoom *room;
 @property (nonatomic) BOOL listening;
@@ -336,6 +337,29 @@ RCT_EXPORT_METHOD(flipCamera) {
   }
 }
 
+RCT_EXPORT_METHOD(toggleScreenSharing: (BOOL) value) {
+    if (value) {
+       TVIAppScreenSourceOptions *options = [TVIAppScreenSourceOptions optionsWithBlock:^(TVIAppScreenSourceOptionsBuilder * _Nonnull builder) {
+
+       }];
+       self.screen = [[TVIAppScreenSource alloc] initWithOptions:options delegate:self];
+       if (self.screen == nil) {
+           return;
+       }
+       self.localVideoTrack = [TVILocalVideoTrack trackWithSource:self.screen enabled:YES name:@"screen"];
+       if(self.localVideoTrack != nil){
+         TVILocalParticipant *localParticipant = self.room.localParticipant;
+         [localParticipant publishVideoTrack:self.localVideoTrack];
+       }
+       [self.screen startCapture];    
+  } else {
+        [self unpublishLocalVideo];
+        [self.screen stopCapture];
+        self.localVideoTrack = nil;
+       }
+}
+
+
 RCT_EXPORT_METHOD(toggleSoundSetup:(BOOL)speaker) {
   NSError *error = nil;
   kTVIDefaultAVAudioSessionConfigurationBlock();
@@ -495,90 +519,9 @@ RCT_EXPORT_METHOD(getStats) {
 
 -(TVIVideoBandwidthProfileOptions*)prepareBandwidthProfile:(NSDictionary *)bandwidthProfileOptions {
     return [TVIVideoBandwidthProfileOptions optionsWithBlock:^(TVIVideoBandwidthProfileOptionsBuilder * _Nonnull builder) {
-    
-        if (bandwidthProfileOptions[@"mode"]) {
-            TVIBandwidthProfileMode mode;
-            
-            NSString *comparisonString = [(NSString *)[bandwidthProfileOptions objectForKey:@"mode"] uppercaseString];
-            
-            if ([comparisonString isEqualToString:@"GRID"]) {
-                mode = TVIBandwidthProfileModeGrid;
-            } else if ([comparisonString isEqualToString:@"COLLABORATION"]) {
-                mode = TVIBandwidthProfileModeCollaboration;
-            } else if ([comparisonString isEqualToString:@"PRESENTATION"]) {
-                mode = TVIBandwidthProfileModePresentation;
-            }
-            
-            NSLog(@"BandwidthProfile - mode: %@", mode);
-            builder.mode = mode;
-        }
-        
-        if (bandwidthProfileOptions[@"trackSwitchOffMode"]) {
-            TVITrackSwitchOffMode mode;
-            
-            NSString *comparisonString = [(NSString *)[bandwidthProfileOptions objectForKey:@"trackSwitchOffMode"] uppercaseString];
-            
-            if ([comparisonString isEqualToString:@"DISABLED"]) {
-                mode = TVITrackSwitchOffModeDisabled;
-            } else if ([comparisonString isEqualToString:@"PREDICTED"]) {
-                mode = TVITrackSwitchOffModePredicted;
-            } else if ([comparisonString isEqualToString:@"DETECTED"]) {
-                mode = TVITrackSwitchOffModeDetected;
-            }
-            
-            builder.trackSwitchOffMode = mode;
-            NSLog(@"BandwidthProfile - trackSwitchOffMode: %@", mode);
-        }
-        
-        if (bandwidthProfileOptions[@"maxTracks"]) {
-            NSNumber *numberValue = @([bandwidthProfileOptions[@"maxTracks"] integerValue]);
-            
-            if (numberValue > 0) {
-                builder.maxTracks = numberValue;
-                NSLog(@"BandwidthProfile - maxTracks: %@", numberValue);
-            } else {
-                NSLog(@"maxTracks cant be less than 1. Ignoring.");
-            }
-        }
-        
-        if (bandwidthProfileOptions[@"maxSubscriptionBitrate"]) {
-            NSNumber *numberValue = @([bandwidthProfileOptions[@"maxSubscriptionBitrate"] integerValue]);
-            
-            if (numberValue > 0) {
-                builder.maxSubscriptionBitrate = numberValue;
-                NSLog(@"BandwidthProfile - maxSubscriptionBitrate: %@", numberValue);
-            } else {
-                NSLog(@"maxSubscriptionBitrate cant be less than 1. Ignoring.");
-            }
-        }
-        
-        if (bandwidthProfileOptions[@"dominantSpeakerPriority"]) {
-            builder.dominantSpeakerPriority = [self parsePriorityString:(NSString *)[bandwidthProfileOptions objectForKey:@"dominantSpeakerPriority"]];
-            NSLog(@"BandwidthProfile - dominantSpeakerPriority: %@", builder.dominantSpeakerPriority);
-        }
-        
-        if (bandwidthProfileOptions[@"renderDimensions"]) {
-            NSDictionary *renderDimensionsDict = [bandwidthProfileOptions objectForKey:@"renderDimensions"];
-            
-            TVIVideoRenderDimensions *dimensions = [TVIVideoRenderDimensions alloc];
-            
-            if (renderDimensionsDict[@"low"]) {
-                dimensions.low = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"low"]];
-                NSLog(@"BandwidthProfile - renderDimensions - low: %lux%lu", (unsigned long)dimensions.low.width, (unsigned long)dimensions.low.height);
-            }
-            
-            if (renderDimensionsDict[@"standard"]) {
-                dimensions.standard = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"standard"]];
-                NSLog(@"BandwidthProfile - renderDimensions - standard: %lux%lu", (unsigned long)dimensions.standard.width, (unsigned long)dimensions.standard.height);
-            }
-            
-            if (renderDimensionsDict[@"high"]) {
-                dimensions.high = [self parseDimensionString:(NSString *)[renderDimensionsDict objectForKey:@"high"]];
-                NSLog(@"BandwidthProfile - renderDimensions - high: %lux%lu", (unsigned long)dimensions.high.width, (unsigned long)dimensions.high.height);
-            }
-            
-            builder.renderDimensions = dimensions;
-        }
+        TVIBandwidthProfileMode mode = TVIBandwidthProfileModeCollaboration;
+        builder.maxSubscriptionBitrate = @2000;
+        builder.dominantSpeakerPriority = [self parsePriorityString:@"HIGH"];
     }];
 }
 

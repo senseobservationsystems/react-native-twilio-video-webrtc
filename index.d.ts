@@ -13,17 +13,23 @@ declare module "react-native-twilio-video-webrtc" {
   interface TwilioVideoParticipantViewProps extends ViewProps {
     trackIdentifier: TrackIdentifier;
     ref?: React.Ref<any>;
-    scalesType?: number;
     scaleType?: scaleType;
-    applyZOrder?: boolean;
+    /**
+     * Whether to apply Z ordering to this view.  Setting this to true will cause
+     * this view to appear above other Twilio Video views. 
+     */
+     applyZOrder?: boolean | undefined;
   }
 
   interface TwilioVideoLocalViewProps extends ViewProps {
     enabled: boolean;
     ref?: React.Ref<any>;
-    scalesType?: number;
     scaleType?: scaleType;
-    applyZOrder?: boolean;
+    /**
+     * Whether to apply Z ordering to this view.  Setting this to true will cause
+     * this view to appear above other Twilio Video views. 
+     */
+    applyZOrder?: boolean | undefined;
   }
 
   export interface Participant {
@@ -119,40 +125,11 @@ declare module "react-native-twilio-video-webrtc" {
 
     onStatsReceived?: (data: any) => void;
     onDataTrackMessageReceived?: DataTrackEventCb;
-
-    useCustomAudioDevice?: boolean;
-
     // iOS only
+    useCustomAudioDevice?: boolean;
     autoInitializeCamera?: boolean;    
     ref?: React.Ref<any>;
   };
-
-  export type BandwidthProfileMode = "GRID" | "COLLABORATION" | "PRESENTATION";
-
-  export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
-
-  export type TrackSwitchOffMode = "DISABLED" | "PREDICTED" | "DETECTED";
-
-  export type CameraSettings = {
-    maxDimensions: string;
-    maxFPS: number;
-  };
-
-  // Dimensions are provided in the string in the format of <width>x<height>
-  export type RenderDimensions = {
-    "low"?: string,
-    "standard"?: string,
-    "high"?: string,
-  }
-
-  export type BandwidthProfileOptions = {
-    mode?: BandwidthProfileMode
-    maxTracks?: number,
-    maxSubscriptionBitrate?: number,
-    dominantSpeakerPriority?: TrackPriority,
-    renderDimensions?: RenderDimensions,
-    trackSwitchOffMode?: TrackSwitchOffMode,
-  }
 
   type iOSConnectParams = {
     roomName?: string;
@@ -168,7 +145,6 @@ declare module "react-native-twilio-video-webrtc" {
       videoBitrate?: number;
     };
     enableNetworkQualityReporting?: boolean;
-    bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
   type androidConnectParams = {
@@ -178,20 +154,17 @@ declare module "react-native-twilio-video-webrtc" {
     dominantSpeakerEnabled?: boolean;
     enableAudio?: boolean;
     enableVideo?: boolean;
+    enableRemoteAudio?: boolean;
     encodingParameters?: {
       enableH264Codec?: boolean;
-      // if audioBitrate OR videoBitrate is provided, you must provide both
-      audioBitrate?: number;
-      videoBitrate?: number;
     };
-    enableRemoteAudio?: boolean;
     enableNetworkQualityReporting?: boolean;
     maintainVideoTrackInBackground?: boolean;
-    bandwidthProfileOptions?: BandwidthProfileOptions;
   };
 
+  export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
   class TwilioVideo extends React.Component<TwilioVideoProps> {
-    setLocalVideoEnabled: (enabled: boolean, cameraSettings?: CameraSettings) => Promise<boolean>;
+    setLocalVideoEnabled: (enabled: boolean) => Promise<boolean>;
     setLocalAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setRemoteAudioEnabled: (enabled: boolean) => Promise<boolean>;
     setBluetoothHeadsetConnected: (enabled: boolean) => Promise<boolean>;
@@ -205,8 +178,9 @@ declare module "react-native-twilio-video-webrtc" {
     publishLocalVideo: () => void;
     unpublishLocalVideo: () => void;
     sendString: (message: string) => void;
-    setStereoEnabled: (enabled: boolean) => Promise<boolean>;
     setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
+    //ios only
+    setStereoEnabled: (enabled: boolean) => Promise<boolean>;
   }
 
   class TwilioVideoLocalView extends React.Component<
@@ -218,7 +192,6 @@ declare module "react-native-twilio-video-webrtc" {
   > {}
 
   export { TwilioVideoLocalView, TwilioVideoParticipantView, TwilioVideo };
-
   export class TwilioStereoTonePlayer {
     preload: (filename: string) => Promise<boolean>;
     play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;

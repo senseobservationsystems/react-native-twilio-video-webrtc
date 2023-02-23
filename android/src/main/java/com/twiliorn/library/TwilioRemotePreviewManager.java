@@ -7,7 +7,7 @@
 
 package com.twiliorn.library;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.util.Log;
 
 import com.facebook.react.common.MapBuilder;
@@ -33,21 +33,13 @@ public class TwilioRemotePreviewManager extends SimpleViewManager<TwilioRemotePr
 
     @ReactProp(name = "scaleType")
     public void setScaleType(TwilioRemotePreview view, @Nullable String scaleType) {
+
       if (scaleType.equals("fit")) {
         view.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
       } else {
         view.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL);
       }
-    }
-
-    @ReactProp(name = "scalesType")
-    public void setScalesType(TwilioRemotePreview view, @Nullable int scalesType) {
-        // This props is made specially for nice day to allow double tapping to change the video size.
-        // Details: https://github.com/senseobservationsystems/goalie-2-mobile-app/pull/2941
-        // We add request layout at the end of the function to always trigger layouting whenever
-        // value of this props changes.
-        view.setScalesType(scalesType);
-        view.requestLayout();
+       view.requestLayout();
     }
 
     @ReactProp(name = "trackSid")
@@ -71,12 +63,12 @@ public class TwilioRemotePreviewManager extends SimpleViewManager<TwilioRemotePr
 
     @Override
     public Map getExportedCustomBubblingEventTypeConstants() {
-        return MapBuilder.builder()
-                .put(
-                        ON_FRAME_DIMENSIONS_CHANGED,
-                        MapBuilder.of(
-                                "phasedRegistrationNames",
-                                MapBuilder.of("bubbled", ON_FRAME_DIMENSIONS_CHANGED)))
-                .build();
-    }
+      return MapBuilder.builder()
+          .put(
+            ON_FRAME_DIMENSIONS_CHANGED,
+              MapBuilder.of(
+                  "phasedRegistrationNames",
+                  MapBuilder.of("bubbled", ON_FRAME_DIMENSIONS_CHANGED)))
+                  .build();
+  }
 }

@@ -60,8 +60,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
     private static final int SEND_STRING = 12;
     private static final int PUBLISH_VIDEO = 13;
     private static final int PUBLISH_AUDIO = 14;
-    private static final int TOGGLE_STEREO = 15;
-    private static final int SET_TRACK_PRIORITY = 16;
+    private static final int SET_TRACK_PRIORITY = 15;
 
     @Override
     public String getName() {
@@ -86,8 +85,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 boolean dominantSpeakerEnabled = args.getBoolean(6);
                 boolean maintainVideoTrackInBackground = args.getBoolean(7);
                 String cameraType = args.getString(8);
-                ReadableMap bandwidthProfileOptions = args.getMap(9);
-                ReadableMap encodingParameters = args.getMap(10);
+                ReadableMap encodingParameters = args.getMap(9);
                 boolean enableH264Codec = encodingParameters.hasKey("enableH264Codec") ? encodingParameters.getBoolean("enableH264Codec") : false;
                 view.connectToRoomWrapper(
                     roomName,
@@ -99,8 +97,6 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                     dominantSpeakerEnabled,
                     maintainVideoTrackInBackground,
                     cameraType,
-                    bandwidthProfileOptions,
-                    encodingParameters,
                     enableH264Codec
                   );
                 break;
@@ -112,8 +108,7 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 break;
             case TOGGLE_VIDEO:
                 Boolean videoEnabled = args.getBoolean(0);
-                ReadableMap cameraSettings = args.getMap(1);
-                view.toggleVideo(videoEnabled, cameraSettings);
+                view.toggleVideo(videoEnabled);
                 break;
             case TOGGLE_SOUND:
                 Boolean audioEnabled = args.getBoolean(0);
@@ -148,10 +143,6 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 break;
             case PUBLISH_AUDIO:
                 view.publishLocalAudio(args.getBoolean(0));
-                break;
-            case TOGGLE_STEREO:
-                Boolean stereoEnabled = args.getBoolean(0);
-                view.toggleStereo(stereoEnabled);
                 break;
             case SET_TRACK_PRIORITY:
                 String trackSid = args.getString(0);
@@ -216,7 +207,6 @@ public class CustomTwilioVideoViewManager extends SimpleViewManager<CustomTwilio
                 .put("toggleRemoteSound", TOGGLE_REMOTE_SOUND)
                 .put("toggleBluetoothHeadset", TOGGLE_BLUETOOTH_HEADSET)
                 .put("sendString", SEND_STRING)
-                .put("setStereo", TOGGLE_STEREO)
                 .put("setTrackPriority", SET_TRACK_PRIORITY)
                 .build();
     }

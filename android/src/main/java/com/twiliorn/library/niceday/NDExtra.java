@@ -8,9 +8,8 @@ import android.content.Intent;
 import android.os.Handler;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
-import com.facebook.react.bridge.ReadableMap;
 import com.twilio.video.BandwidthProfileMode;
 import com.twilio.video.BandwidthProfileOptions;
 import com.twilio.video.ConnectOptions;
@@ -20,12 +19,8 @@ import com.twilio.video.RemoteVideoTrack;
 import com.twilio.video.RemoteVideoTrackPublication;
 import com.twilio.video.Room;
 import com.twilio.video.TrackPriority;
-import com.twilio.video.TrackSwitchOffMode;
 import com.twilio.video.VideoBandwidthProfileOptions;
 import com.twilio.video.VideoDimensions;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * This class contains changes on CustomTwilioVideoView.
@@ -38,11 +33,11 @@ public class NDExtra {
     private static final VideoDimensions DEFAULT_MAX_CAPTURE_RESOLUTION = VideoDimensions.CIF_VIDEO_DIMENSIONS;
     private static final int DEFAULT_MAX_CAPTURE_FPS = 25;
     public boolean enableH264Codec = false;
-    public int audioBitrate = 0;
-    public int videoBitrate = 0;
+    public int audioBitrate = 16;   // Ideal bitrate for speech
+    public int videoBitrate = 0;    // Use default video bitrate
     public BandwidthProfileOptions bandwidthProfile = null;
     public boolean isVideoEnabled;
-    public VideoDimensions maxCaptureDimensions = DEFAULT_MAX_CAPTURE_RESOLUTION;
+    public VideoDimensions maxCaptureDimensions = parseDimensionsString("640x480");
     public int maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
     Context appContext;
     Handler handler = new Handler();
@@ -58,116 +53,20 @@ public class NDExtra {
 
     public NDExtra(Context appContext) {
         this.appContext = appContext;
+        prepareBandwidthProfile();
         btHeadsetListener();
     }
 
-    public BandwidthProfileOptions prepareBandwidthProfile(ReadableMap options) {
-        BandwidthProfileMode mode = null;
-        TrackSwitchOffMode trackSwitchOffMode = null;
-        @Nullable Long maxTracks = null;
-        @Nullable Long maxSubscriptionBitrate = null;
-        TrackPriority dominantSpeakerPriority = null;
-        Map<TrackPriority, VideoDimensions> renderDimensions = new HashMap<>();
-
-        if (options.hasKey("mode")) {
-            String modeString = options.getString("mode");
-
-            // Parse mode of the current call
-            if (modeString != null) {
-                if (modeString.equalsIgnoreCase("GRID")) {
-                    mode = BandwidthProfileMode.GRID;
-                } else if (modeString.equalsIgnoreCase("COLLABORATION")) {
-                    mode = BandwidthProfileMode.COLLABORATION;
-                } else if (modeString.equalsIgnoreCase("PRESENTATION")) {
-                    mode = BandwidthProfileMode.PRESENTATION;
-                } else {
-                    Log.w(TAG, "Unknown Bandwidth Profile Mode" + modeString);
-                }
-            }
-        }
-
-        if (options.hasKey("trackSwitchOffMode")) {
-            String trackSwitchOffModeString = options.getString("trackSwitchOffMode");
-
-            // Parse mode of the current call
-            if (trackSwitchOffModeString != null) {
-                if (trackSwitchOffModeString.equalsIgnoreCase("DISABLED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.DISABLED;
-                } else if (trackSwitchOffModeString.equalsIgnoreCase("PREDICTED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.PREDICTED;
-                } else if (trackSwitchOffModeString.equalsIgnoreCase("DETECTED")) {
-                    trackSwitchOffMode = TrackSwitchOffMode.DETECTED;
-                } else {
-                    Log.w(TAG, "Unknown Track Switch Off Mode" + trackSwitchOffModeString);
-                }
-            }
-        }
-
-        // Parse max tracks to enabled during a call
-        if (options.hasKey("maxTracks")) {
-            int maxTracksAsInt = options.getInt("maxTracks");
-            if (maxTracksAsInt > 0) {
-                maxTracks = (long) maxTracksAsInt;
-            }
-        }
-
-        // Parse max subscription bit rate
-        if (options.hasKey("maxSubscriptionBitrate")) {
-            int maxSubscriptionBitrateAsInt = options.getInt("maxSubscriptionBitrate");
-            if (maxSubscriptionBitrateAsInt > 0) {
-                maxSubscriptionBitrate = (long) maxSubscriptionBitrateAsInt;
-            }
-        }
-
-        // Parse priority for dominant speaker
-        if (options.hasKey("dominantSpeakerPriority")) {
-            dominantSpeakerPriority = parsePriorityString(options.getString("dominantSpeakerPriority"));
-        }
-
-        // Parse Render Dimensions
-        if (options.hasKey("renderDimensions")) {
-            ReadableMap renderDimensionsMap = options.getMap("renderDimensions");
-            if (renderDimensionsMap != null) {
-                if (renderDimensionsMap.hasKey("low")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("low"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.LOW, dimensions);
-                    }
-                }
-
-                if (renderDimensionsMap.hasKey("standard")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("standard"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.STANDARD, dimensions);
-                    }
-                }
-
-                if (renderDimensionsMap.hasKey("high")) {
-                    VideoDimensions dimensions = parseDimensionsString(renderDimensionsMap.getString("high"));
-                    if (dimensions != null) {
-                        renderDimensions.put(TrackPriority.HIGH, dimensions);
-                    }
-                }
-            }
-        } else {
-            this.isVideoEnabled = false;
-        }
-
-        Log.d(TAG, "BandwidthProfile - mode: " + mode);
-        Log.d(TAG, "BandwidthProfile - maxTracks: " + maxTracks);
-        Log.d(TAG, "BandwidthProfile - dominantSpeakerPriority: " + dominantSpeakerPriority);
-        Log.d(TAG, "BandwidthProfile - renderDimensions: " + renderDimensions);
-        Log.d(TAG, "BandwidthProfile - trackSwitchOffMode: " + trackSwitchOffMode);
-
+    public void prepareBandwidthProfile() {
+        BandwidthProfileMode mode = BandwidthProfileMode.COLLABORATION;
+        @Nullable Long maxSubscriptionBitrate = (long) 2000;    // Parse max tracks to enabled during a call
+        TrackPriority dominantSpeakerPriority = parsePriorityString("HIGH");
         VideoBandwidthProfileOptions videoBandwidthProfileOptions = new VideoBandwidthProfileOptions.Builder()
                 .mode(mode)
-                .maxTracks(maxTracks)
                 .dominantSpeakerPriority(dominantSpeakerPriority)
                 .maxSubscriptionBitrate(maxSubscriptionBitrate)
-                .renderDimensions(renderDimensions)
-                .trackSwitchOffMode(trackSwitchOffMode)
                 .build();
-        return new BandwidthProfileOptions(videoBandwidthProfileOptions);
+        this.bandwidthProfile = new BandwidthProfileOptions(videoBandwidthProfileOptions);
     }
 
     public void applyExtraParamsTo(ConnectOptions.Builder connectOptionsBuilder) {
@@ -183,42 +82,6 @@ public class NDExtra {
             }
         }
         connectOptionsBuilder.bandwidthProfile(this.bandwidthProfile);
-    }
-
-    public void setExtraParams(ReadableMap encodingParameters, ReadableMap bandwidthProfileOptions) {
-        if (encodingParameters.hasKey("enableH264Codec")) {
-            this.enableH264Codec = encodingParameters.getBoolean("enableH264Codec");
-        }
-
-        if (encodingParameters.hasKey("audioBitrate")) {
-            this.audioBitrate = encodingParameters.getInt("audioBitrate");
-        }
-
-        if (encodingParameters.hasKey("videoBitrate")) {
-            this.videoBitrate = encodingParameters.getInt("videoBitrate");
-        }
-
-        this.bandwidthProfile = prepareBandwidthProfile(bandwidthProfileOptions);
-    }
-
-    public void applyCameraSettings(ReadableMap cameraSettings) {
-        if (cameraSettings != null) {
-            if (cameraSettings.hasKey("maxDimensions")) {
-                this.maxCaptureDimensions = parseDimensionsString(cameraSettings.getString("maxDimensions"));
-            }
-
-            if (cameraSettings.hasKey("maxFPS")) {
-                this.maxCaptureFPS = cameraSettings.getInt("maxFPS");
-            }
-        }
-
-        if (this.maxCaptureDimensions == null) {
-            this.maxCaptureDimensions = DEFAULT_MAX_CAPTURE_RESOLUTION;
-        }
-
-        if (this.maxCaptureFPS < 1) {
-            this.maxCaptureFPS = DEFAULT_MAX_CAPTURE_FPS;
-        }
     }
 
     public void setTrackPriority(String trackSid, String trackPriorityString, Room room) {

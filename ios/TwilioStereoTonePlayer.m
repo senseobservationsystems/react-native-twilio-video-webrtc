@@ -15,6 +15,10 @@
     return self;
 }
 
++ (BOOL)requiresMainQueueSetup {
+    return YES;
+}
+
 static RCTTWCustomAudioDevice *_audioDevice;
 
 + ( RCTTWCustomAudioDevice *)audioDevice {

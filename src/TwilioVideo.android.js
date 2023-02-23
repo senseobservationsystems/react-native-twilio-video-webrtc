@@ -7,7 +7,7 @@
  *   Jonathan Chang <slycoder@gmail.com>
  */
 
-import {
+ import {
   Platform,
   UIManager,
   View,
@@ -165,8 +165,7 @@ const nativeEvents = {
   toggleBluetoothHeadset: 11,
   sendString: 12,
   publishVideo: 13,
-  publishAudio: 14,
-  toggleStereo: 15
+  publishAudio: 14
 }
 
 class CustomTwilioVideoView extends Component {
@@ -180,23 +179,7 @@ class CustomTwilioVideoView extends Component {
     enableNetworkQualityReporting = false,
     dominantSpeakerEnabled = false,
     maintainVideoTrackInBackground = false,
-    bandwidthProfileOptions = {
-      "mode":"",
-      "maxTracks": -1,
-      "maxSubscriptionBitrate": -1,
-      "dominantSpeakerPriority": "",
-      "renderDimensions": {
-        "low": "",
-        "standard": "",
-        "high": "",
-      },
-      "trackSwitchOffMode":"",
-    },
-    encodingParameters = {
-      "enableH264Codec": false,
-      "audioBitrate": -1,
-      "videoBitrate": -1
-    }
+    encodingParameters = {}
   }) {
     this.runCommand(nativeEvents.connectToRoom, [
       roomName,
@@ -208,7 +191,6 @@ class CustomTwilioVideoView extends Component {
       dominantSpeakerEnabled,
       maintainVideoTrackInBackground,
       cameraType,
-      bandwidthProfileOptions,
       encodingParameters
     ])
   }
@@ -247,8 +229,8 @@ class CustomTwilioVideoView extends Component {
     this.runCommand(nativeEvents.switchCamera, [])
   }
 
-  setLocalVideoEnabled (enabled, cameraSettings) {
-    this.runCommand(nativeEvents.toggleVideo, [enabled, cameraSettings])
+  setLocalVideoEnabled (enabled) {
+    this.runCommand(nativeEvents.toggleVideo, [enabled])
     return Promise.resolve(enabled)
   }
 
@@ -268,14 +250,14 @@ class CustomTwilioVideoView extends Component {
   }
 
   setStereoEnabled (enabled) {
-    this.runCommand(nativeEvents.toggleStereo, [enabled])
+    //only on ios
     return Promise.resolve(enabled)
   }
-  
+
   setTrackPriority (trackSid, priority) {
     this.runCommand(nativeEvents.setTrackPriority, [trackSid, priority])
   }
-
+  
   getStats () {
     this.runCommand(nativeEvents.getStats, [])
   }
