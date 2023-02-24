@@ -200,13 +200,14 @@ project(':react-native-twilio-video-webrtc').projectDir = new File(rootProject.p
 ```
 
 And include the library in your dependencies in `android/app/build.gradle`:
+(if using gradle 4 or lower, replace `implementation` with `compile` below)
 
 ```
 dependencies {
     .....
     .....
     .....
-    compile project(':react-native-twilio-video-webrtc')
+    implementation project(':react-native-twilio-video-webrtc')
 }
 ```
 
@@ -271,7 +272,6 @@ If you are using proguard (very likely), you will also need to ensure that the s
 this library are not stripped. To do that, add these two lines to `proguard-rules.pro`:
 
 ```
-  -keep class org.webrtc.** { *; }
   -keep class com.twilio.** { *; }
   -keep class tvi.webrtc.** { *; }
 ```
