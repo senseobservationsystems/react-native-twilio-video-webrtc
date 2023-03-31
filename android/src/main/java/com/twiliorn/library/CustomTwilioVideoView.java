@@ -454,7 +454,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             boolean dominantSpeakerEnabled,
             boolean maintainVideoTrackInBackground,
             String cameraType,
-            boolean enableH264Codec
+            boolean enableH264Codec,
+            int audioBitrateInKbps,
+            int videoBitrateInKbps
     ) {
         this.roomName = roomName;
         this.accessToken = accessToken;
@@ -464,6 +466,8 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         this.maintainVideoTrackInBackground = maintainVideoTrackInBackground;
         this.cameraType = cameraType;
         this.enableH264Codec = enableH264Codec;
+        ndExtra.audioBitrate=audioBitrateInKbps;
+        ndExtra.videoBitrate=videoBitrateInKbps;
 
         // Share your microphone
         localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
