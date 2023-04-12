@@ -1317,7 +1317,15 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                     if (publication.getTrackSid().equals(trackSid)) {
                         track.addSink(v);
                     } else {
-                        track.removeSink(v);
+                        //To address the error "Attempt to invoke virtual method 'long com.twilio.video.VideoSinkHintsProducer.getSinkHintsId()' on a null object reference," 
+                        //a try-catch block has been added. However, the reason for this error is currently unknown, 
+                        //as it has only happen since version 7.x.x. One possible workaround is to avoid using bandwidth profiles, 
+                        //as this seems to prevent the crash from occurring.
+                        try{
+                            track.removeSink(v);
+                        }catch (Exception e){
+                            Log.d(TAG,e.getMessage());
+                        }
                     }
                 }
             }
