@@ -114,6 +114,39 @@ yarn add https://github.com/blackuy/react-native-twilio-video-webrtc
 npm install https://github.com/blackuy/react-native-twilio-video-webrtc --save
 ```
 
+### Usage with Expo
+
+To use this library with [`Expo`](https://expo.dev) we recommend using our config plugin that you can configure like the following example:
+
+```json
+{
+  "name": "my app",
+  "plugins": [
+    [
+      "react-native-twilio-video-webrtc",
+      {
+        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+        "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
+      }
+    ]
+  ]
+}
+```
+
+Also you will need to install `expo-build-properties` package:
+
+```shell
+npx expo install expo-build-properties
+```
+
+#### Expo Config Plugin Props
+
+The plugin support the following properties:
+
+- `cameraPermission`: Specifies the text to show when requesting the camera permission to the user.
+
+- `microphonePermission`: Specifies the text to show when requesting the microphone permission to the user.
+
 ### iOS
 
 #### Option A: Install with CocoaPods (recommended)
@@ -355,24 +388,22 @@ const Example = (props) => {
   const _onParticipantAddedVideoTrack = ({ participant, track }) => {
     console.log("onParticipantAddedVideoTrack: ", participant, track);
 
-    setVideoTracks(
-      new Map([
-        ...videoTracks,
-        [
-          track.trackSid,
-          { participantSid: participant.sid, videoTrackSid: track.trackSid },
-        ],
-      ])
-    );
+    setVideoTracks((originalVideoTracks) => {
+      originalVideoTracks.set(track.trackSid, {
+        participantSid: participant.sid,
+        videoTrackSid: track.trackSid,
+      });
+      return new Map(originalVideoTracks);
+    });
   };
 
   const _onParticipantRemovedVideoTrack = ({ participant, track }) => {
     console.log("onParticipantRemovedVideoTrack: ", participant, track);
 
-    const videoTracksLocal = videoTracks;
-    videoTracksLocal.delete(track.trackSid);
-
-    setVideoTracks(videoTracksLocal);
+    setVideoTracks((originalVideoTracks) => {
+      originalVideoTracks.delete(track.trackSid);
+      return new Map(originalVideoTracks);
+    });
   };
 
   return (
