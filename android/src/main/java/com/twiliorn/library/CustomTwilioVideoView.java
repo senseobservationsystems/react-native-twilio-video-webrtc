@@ -615,7 +615,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
              */
             audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
             setAudioType();
-            ContextCompat.registerReceiver(getContext(), myNoisyAudioStreamReceiver, intentFilter, ContextCompat.RECEIVER_EXPORTED);
+            ContextCompat.registerReceiver(getContext(), myNoisyAudioStreamReceiver, intentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         } else {
             if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
