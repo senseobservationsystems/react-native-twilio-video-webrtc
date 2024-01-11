@@ -24,6 +24,7 @@ import android.os.Build;
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringDef;
+import androidx.core.content.ContextCompat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
@@ -614,7 +615,7 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
              */
             audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
             setAudioType();
-            getContext().registerReceiver(myNoisyAudioStreamReceiver, intentFilter);
+            ContextCompat.registerReceiver(getContext(), myNoisyAudioStreamReceiver, intentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         } else {
             if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -768,6 +769,20 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
                 for (AudioTrackPublication at : rp.getAudioTracks()) {
                     if (at.getAudioTrack() != null) {
                         ((RemoteAudioTrack) at.getAudioTrack()).enablePlayback(enabled);
+                    }
+                }
+            }
+        }
+    }
+
+    public void setRemoteAudioPlayback(String participant, boolean enabled) {
+        if (room != null) {
+            for (RemoteParticipant rp : room.getRemoteParticipants()) {
+                if (rp.getSid().equals(participant)) {
+                    for (AudioTrackPublication at : rp.getAudioTracks()) {
+                        if (at.getAudioTrack() != null) {
+                            ((RemoteAudioTrack) at.getAudioTrack()).enablePlayback(enabled);
+                        }
                     }
                 }
             }

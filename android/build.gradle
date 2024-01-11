@@ -7,6 +7,7 @@ def DEFAULT_ANDROID_SUPPORT_VERSION         = "27.1.0"
 def DEFAULT_ANDROID_MIN_SDK_VERSION         = 21
 
 android {
+    namespace = "com.twiliorn.library"
     compileSdkVersion rootProject.hasProperty('compileSdkVersion') ? rootProject.compileSdkVersion : DEFAULT_COMPILE_SDK_VERSION
     buildToolsVersion rootProject.hasProperty('buildToolsVersion') ? rootProject.buildToolsVersion : DEFAULT_BUILD_TOOLS_VERSION
 
@@ -52,4 +53,5 @@ dependencies {
     implementation "com.android.support:appcompat-v7:$androidSupportVersion"
     implementation "com.twilio:video-android:7.6.1"
     implementation "com.facebook.react:react-native:+"  // From node_modules
+    implementation "androidx.core:core-ktx:1.12.0"
 }
