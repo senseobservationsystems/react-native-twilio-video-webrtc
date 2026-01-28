@@ -1,5 +1,5 @@
 declare module "@twilio/video-react-native-sdk" {
-    import {ViewProps} from "react-native";
+    import { ViewProps } from "react-native";
     import React from "react";
 
     export interface TrackIdentifier {
@@ -7,8 +7,8 @@ declare module "@twilio/video-react-native-sdk" {
         videoTrackSid: string;
     }
 
-    type scaleType = "fit"|"fill";
-    type cameraType = "front"|"back";
+    type scaleType = "fit" | "fill";
+    type cameraType = "front" | "back";
 
     /**
    * Video capture format configuration.
@@ -31,7 +31,7 @@ declare module "@twilio/video-react-native-sdk" {
  * Whether to apply Z ordering to this view.  Setting this to true will cause
  * this view to appear above other Twilio Video views.
  */
-        applyZOrder?: boolean|undefined;
+        applyZOrder?: boolean | undefined;
     }
 
     interface TwilioVideoLocalViewProps extends ViewProps {
@@ -42,7 +42,7 @@ declare module "@twilio/video-react-native-sdk" {
  * Whether to apply Z ordering to this view.  Setting this to true will cause
  * this view to appear above other Twilio Video views.
  */
-        applyZOrder?: boolean|undefined;
+        applyZOrder?: boolean | undefined;
     }
 
     interface TwilioVideoScreenShareViewProps extends ViewProps {
@@ -53,7 +53,7 @@ declare module "@twilio/video-react-native-sdk" {
  * Whether to apply Z ordering to this view.  Setting this to true will cause
  * this view to appear above other Twilio Video views.
  */
-        applyZOrder?: boolean|undefined;
+        applyZOrder?: boolean | undefined;
     }
 
     export interface Participant {
@@ -98,16 +98,16 @@ declare module "@twilio/video-react-native-sdk" {
         roomSid: string;
     }
 
-    export type RoomErrorEventArgs = RoomEventCommonArgs&{
+    export type RoomErrorEventArgs = RoomEventCommonArgs & {
         error: any;
     };
 
-    export type RoomEventArgs = RoomEventCommonArgs&{
+    export type RoomEventArgs = RoomEventCommonArgs & {
         participants: Participant[];
         localParticipant: Participant;
     };
 
-    export type ParticipantEventArgs = RoomEventCommonArgs&{
+    export type ParticipantEventArgs = RoomEventCommonArgs & {
         participant: Participant;
     };
 
@@ -124,7 +124,7 @@ declare module "@twilio/video-react-native-sdk" {
 
     export type NetworkLevelChangeEventCb = (p: NetworkLevelChangeEventArgs) => void;
 
-    export type DominantSpeakerChangedEventArgs = RoomEventCommonArgs&{
+    export type DominantSpeakerChangedEventArgs = RoomEventCommonArgs & {
         participant: Participant;
     };
 
@@ -161,7 +161,7 @@ declare module "@twilio/video-react-native-sdk" {
 
     export type TranscriptionEventCb = (e: TranscriptionEventArgs) => void;
 
-    export type ReconnectingEventArgs = RoomEventCommonArgs&{
+    export type ReconnectingEventArgs = RoomEventCommonArgs & {
         error: any;
     };
     export type ReconnectingEventCb = (e: ReconnectingEventArgs) => void;
@@ -178,14 +178,14 @@ declare module "@twilio/video-react-native-sdk" {
         signalingRegion?: string;
     };
 
-    export type TwilioVideoProps = ViewProps&{
+    export type TwilioVideoProps = ViewProps & {
         onCameraDidStart?: () => void;
-        onCameraWasInterrupted?: (args?: {reason?: string}) => void;
+        onCameraWasInterrupted?: (args?: { reason?: string }) => void;
         onCameraInterruptionEnded?: () => void;
-        onCameraDidStopRunning?: (args?: {error?: string}) => void;
-        onCameraSwitched?: (args: {isBackCamera: boolean}) => void;
-        onVideoChanged?: (args: {videoEnabled: boolean}) => void;
-        onAudioChanged?: (args: {audioEnabled: boolean}) => void;
+        onCameraDidStopRunning?: (args?: { error?: string }) => void;
+        onCameraSwitched?: (args: { isBackCamera: boolean }) => void;
+        onVideoChanged?: (args: { videoEnabled: boolean }) => void;
+        onAudioChanged?: (args: { audioEnabled: boolean }) => void;
         onDominantSpeakerDidChange?: DominantSpeakerChangedCb;
         onParticipantAddedAudioTrack?: TrackEventCb;
         onParticipantAddedVideoTrack?: TrackEventCb;
@@ -234,7 +234,10 @@ declare module "@twilio/video-react-native-sdk" {
         // DEPRECATED: Only available on iOS and will be removed in a future release
         autoInitializeCamera?: boolean;
         ref?: React.Ref<any>;
+        useCustomAudioDevice?: boolean;
     };
+
+    export type TrackPriority = "LOW" | "STANDARD" | "HIGH" | "NULL";
 
     export type iOSConnectParams = {
         roomName?: string;
@@ -256,6 +259,7 @@ declare module "@twilio/video-react-native-sdk" {
         videoFormat?: VideoFormat | null;
         /** Twilio signaling region (e.g. 'gll', 'us1', 'us2', 'au1', 'br1', 'de1', 'ie1', 'in1', 'jp1', 'sg1') */
         region?: string | null;
+        bandwidthProfileOptions?: any;
     };
 
     export type androidConnectParams = {
@@ -285,7 +289,7 @@ declare module "@twilio/video-react-native-sdk" {
         setLocalDataTrackEnabled: (enabled: boolean) => Promise<boolean>;
         setRemoteAudioEnabled: (enabled: boolean) => Promise<boolean>;
         setBluetoothHeadsetConnected: (enabled: boolean) => Promise<boolean>;
-        connect: (options: iOSConnectParams|androidConnectParams) => void;
+        connect: (options: iOSConnectParams | androidConnectParams) => void;
         disconnect: () => void;
         flipCamera: () => void;
         toggleSoundSetup: (speaker: boolean) => void;
@@ -298,13 +302,15 @@ declare module "@twilio/video-react-native-sdk" {
         sendString: (message: string) => void;
         sendBinary: (base64Payload: string) => void;
         fetchRoom: () => void;
+        setTrackPriority: (trackSid: string, trackPriority: TrackPriority) => void;
+        setStereoEnabled: (enabled: boolean) => Promise<boolean>;
     }
 
-    class TwilioVideoLocalView extends React.Component<TwilioVideoLocalViewProps> {}
+    class TwilioVideoLocalView extends React.Component<TwilioVideoLocalViewProps> { }
 
-    class TwilioVideoScreenShareView extends React.Component<TwilioVideoScreenShareViewProps> {}
+    class TwilioVideoScreenShareView extends React.Component<TwilioVideoScreenShareViewProps> { }
 
-    class TwilioVideoParticipantView extends React.Component<TwilioVideoParticipantViewProps> {}
+    class TwilioVideoParticipantView extends React.Component<TwilioVideoParticipantViewProps> { }
 
     export {
         TwilioVideoLocalView,
@@ -312,4 +318,14 @@ declare module "@twilio/video-react-native-sdk" {
         TwilioVideoParticipantView,
         TwilioVideo,
     };
+
+    export class TwilioStereoTonePlayer {
+        preload: (filename: string) => Promise<boolean>;
+        play: (filename: string, isLooping: boolean, volume: number, playbackSpeed: number) => Promise<void>;
+        pause: () => void;
+        setVolume: (volume: number) => void;
+        setPlaybackSpeed: (speed: number) => void;
+        release: (filename: string) => void;
+        terminate: () => void;
+    }
 }

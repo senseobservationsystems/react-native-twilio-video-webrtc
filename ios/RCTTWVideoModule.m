@@ -12,6 +12,10 @@
 #import "RCTTWVideoConstants.h"
 #import <UIKit/UIKit.h>
 #import <stdlib.h>
+#import "RCTTWCustomAudioDevice.h"
+#import "TwilioStereoTonePlayer.h"
+
+static RCTTWCustomAudioDevice *GLOBAL_AUDIO_DEVICE = nil;
 
 static NSString *roomDidConnect = @"roomDidConnect";
 static NSString *screenShareChanged = @"screenShareChanged";
@@ -447,7 +451,14 @@ RCT_EXPORT_METHOD(startLocalVideo) {
     return format;
 }
 
-RCT_EXPORT_METHOD(startLocalAudio) {
+RCT_EXPORT_METHOD(startLocalAudio:(BOOL)useCustomAudioDevice) {
+    if (useCustomAudioDevice) {
+        if (GLOBAL_AUDIO_DEVICE == nil) {
+            GLOBAL_AUDIO_DEVICE = [[RCTTWCustomAudioDevice alloc] init];
+            TwilioVideoSDK.audioDevice = GLOBAL_AUDIO_DEVICE;
+            TwilioStereoTonePlayer.audioDevice = GLOBAL_AUDIO_DEVICE;
+        }
+    }
     self.localAudioTrack = [TVILocalAudioTrack trackWithOptions:nil
                                                         enabled:YES
                                                            name:@"microphone"];
@@ -505,6 +516,16 @@ RCT_REMAP_METHOD(setLocalDataTrackEnabled,
     [self _toggleDataTrack:enabled];
 
     resolve(@(enabled));
+}
+
+RCT_REMAP_METHOD(setStereoEnabled, enabled:(BOOL)enabled setStereoEnabledWithResolver:(RCTPromiseResolveBlock)resolve
+    rejecter:(RCTPromiseRejectBlock)reject) {
+
+    if (GLOBAL_AUDIO_DEVICE != NULL) {
+        [GLOBAL_AUDIO_DEVICE makeStereo:enabled];
+    }
+
+  resolve(@(enabled));
 }
 
 // set a default for setting local video enabled
@@ -807,10 +828,52 @@ RCT_EXPORT_METHOD(toggleSoundSetup : (BOOL) speaker) {
         NSLog(@"AVAudiosession setMode %@", error);
     }
 
+    }
+
     if (![session overrideOutputAudioPort:AVAudioSessionPortOverrideNone
                                     error:&error]) {
         NSLog(@"AVAudiosession overrideOutputAudioPort %@", error);
     }
+}
+
+RCT_EXPORT_METHOD(setTrackPriority:(NSString *)trackSid trackPriority:(NSString *)trackPriority) {
+    for (TVIRemoteParticipant *participant in [self.room remoteParticipants]) {
+        if (participant) {
+            for (TVIRemoteVideoTrackPublication *publication in participant.remoteVideoTracks) {
+              if ([publication.trackSid isEqualToString:trackSid]) {
+                  TVITrackPriority priority = [self parsePriorityString:trackPriority];
+                  [publication.remoteTrack setPriority:priority];
+              }
+            }
+        }
+    }
+}
+
+-(TVITrackPriority)parsePriorityString:(NSString *)priority {
+    if (priority == nil) {
+        return TVITrackPriorityStandard;
+    }
+
+    if ([[priority uppercaseString] isEqualToString:@"LOW"]) {
+        return TVITrackPriorityLow;
+    } else if ([[priority uppercaseString] isEqualToString:@"STANDARD"]) {
+        return TVITrackPriorityStandard;
+    } else if ([[priority uppercaseString] isEqualToString:@"HIGH"]) {
+        return TVITrackPriorityHigh;
+    } else if ([[priority uppercaseString] isEqualToString:@"NULL"]) {
+        return TVITrackPriorityStandard; // Default or nil? Upstream uses nil/Standard?
+    }
+    return TVITrackPriorityStandard;
+}
+
+-(TVIVideoBandwidthProfileOptions*)prepareBandwidthProfile:(NSDictionary *)bandwidthProfileOptions {
+    if (bandwidthProfileOptions == nil) {
+        return nil;
+    }
+    return [TVIVideoBandwidthProfileOptions optionsWithBlock:^(TVIVideoBandwidthProfileOptionsBuilder * _Nonnull builder) {
+        builder.mode = TVIBandwidthProfileModeCollaboration; // Default
+        // Add more parsing if needed
+    }];
 }
 
 - (void)convertBaseTrackStats:(TVIBaseTrackStats *)stats
@@ -944,7 +1007,7 @@ RCT_EXPORT_METHOD(
                         encodingParameters enableNetworkQualityReporting : (BOOL)
                                 enableNetworkQualityReporting dominantSpeakerEnabled : (BOOL)
                                         dominantSpeakerEnabled cameraType : (NSString *)
-                                                cameraType enableDataTrack : (BOOL) enableDataTrack receiveTranscriptions : (BOOL) receiveTranscriptions videoFormat : (NSDictionary *) videoFormat) {
+                                                cameraType enableDataTrack : (BOOL) enableDataTrack receiveTranscriptions : (BOOL) receiveTranscriptions videoFormat : (NSDictionary *) videoFormat bandwidthProfileOptions : (NSDictionary *) bandwidthProfileOptions) {
 
     if (accessToken == nil || [accessToken length] == 0) {
         NSMutableDictionary *body = [@{@"error": @"Access token is required"} mutableCopy];
@@ -983,6 +1046,10 @@ RCT_EXPORT_METHOD(
     TVIConnectOptions *connectOptions = [TVIConnectOptions
             optionsWithToken:accessToken
                        block:^(TVIConnectOptionsBuilder *_Nonnull builder) {
+                         if (bandwidthProfileOptions) {
+                             builder.bandwidthProfileOptions = [self prepareBandwidthProfile:bandwidthProfileOptions];
+                         }
+
                          if (self.localVideoTrack) {
                              builder.videoTracks = @[self.localVideoTrack];
                          }
@@ -1071,6 +1138,14 @@ RCT_EXPORT_METHOD(disconnect) {
     [self clearDataInstance];
     [self clearScreenInstance];
     [self.room disconnect];
+
+    // ND Make sure the internal media factory is cleaned up to avoid an exception when switching to custom audio device
+    self.camera = nil;
+    self.localVideoTrack = nil;
+    self.localAudioTrack = nil;
+    self.localDataTrack = nil;
+    self.localParticipant = nil;
+    self.room = nil;
 }
 
 - (void)clearScreenInstance {

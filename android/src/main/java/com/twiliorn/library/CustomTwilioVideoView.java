@@ -144,6 +144,8 @@ import tvi.webrtc.CameraEnumerationAndroid.CaptureFormat;
 import tvi.webrtc.HardwareVideoDecoderFactory;
 import tvi.webrtc.HardwareVideoEncoderFactory;
 import tvi.webrtc.VideoCodecInfo;
+import com.twiliorn.library.niceday.NDExtra;
+import androidx.core.content.ContextCompat;
 
 
 public class CustomTwilioVideoView extends View
@@ -173,7 +175,9 @@ public class CustomTwilioVideoView extends View
     private boolean enableH264Codec = false;
     private boolean isDataEnabled = false;
     private boolean cameraInterrupted = false;
+    private boolean cameraInterrupted = false;
     private boolean receiveTranscriptions = false;
+    private final NDExtra ndExtra = new NDExtra(getContext());
 
     // User-specified video format (0 means auto-select best)
     private int requestedVideoWidth = 0;
@@ -384,7 +388,10 @@ public class CustomTwilioVideoView extends View
          */
         audioManager = (AudioManager) themedReactContext.getSystemService(Context.AUDIO_SERVICE);
         myNoisyAudioStreamReceiver = new BecomingNoisyReceiver();
-        intentFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        myNoisyAudioStreamReceiver = new BecomingNoisyReceiver();
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_HEADSET_PLUG);
+        intentFilter.addAction(NDExtra.BT_INTENT);
 
         // Start dedicated thread for RemoteDataTrack messages and create its handler
         dataTrackMessageThread.start();
@@ -410,7 +417,8 @@ public class CustomTwilioVideoView extends View
         }
 
         // Fallback to HD 720p @ 30fps
-        return new VideoFormat(DEFAULT_VIDEO_DIMENSIONS, DEFAULT_VIDEO_FRAME_RATE);
+        // return new VideoFormat(DEFAULT_VIDEO_DIMENSIONS, DEFAULT_VIDEO_FRAME_RATE);
+        return new VideoFormat(ndExtra.maxCaptureDimensions, ndExtra.maxCaptureFPS);
     }
 
     private String getCurrentCameraId() {
@@ -669,6 +677,8 @@ public class CustomTwilioVideoView extends View
 
         // Quit the data track message thread
         dataTrackMessageThread.quit();
+        
+        ndExtra.cleanUp();
     }
 
     public void releaseResource() {
@@ -678,7 +688,9 @@ public class CustomTwilioVideoView extends View
         thumbnailVideoView = null;
         cameraCapturer = null;
         screenCapturer = null;
+        screenCapturer = null;
         localDataTrack = null;
+        ndExtra.cleanUp();
     }
 
     // ====== CONNECTING ===========================================================================
@@ -739,6 +751,7 @@ public class CustomTwilioVideoView extends View
         }
 
         setAudioFocus(enableAudio);
+        ndExtra.applyExtraParamsTo(connectOptionsBuilder);
         connectToRoom();
     }
 
@@ -831,6 +844,8 @@ public class CustomTwilioVideoView extends View
 
         connectOptionsBuilder.receiveTranscriptions(this.receiveTranscriptions);
 
+        ndExtra.applyExtraParamsTo(connectOptionsBuilder);
+
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
 
@@ -881,7 +896,8 @@ public class CustomTwilioVideoView extends View
              */
             audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
             setAudioType();
-            getContext().registerReceiver(myNoisyAudioStreamReceiver, intentFilter);
+            // getContext().registerReceiver(myNoisyAudioStreamReceiver, intentFilter);
+            ContextCompat.registerReceiver(getContext(), myNoisyAudioStreamReceiver, intentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         } else {
             if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -908,7 +924,7 @@ public class CustomTwilioVideoView extends View
         @Override
         public void onReceive(Context context, Intent intent) {
             // audioManager.setSpeakerphoneOn(true);
-            if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
+            if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) || NDExtra.BT_INTENT.equals(intent.getAction())) {
                 setAudioType();
             }
         }
@@ -1988,5 +2004,16 @@ public class CustomTwilioVideoView extends View
                 pushEvent(CustomTwilioVideoView.this, ON_DATATRACK_MESSAGE_RECEIVED, event);
             }
         };
+    }
+    public void setTrackPriority(String trackSid, String trackPriorityString) {        
+        ndExtra.setTrackPriority(trackSid, trackPriorityString, room); 
+    }  
+
+    /**        
+     * only available on iOS   
+     * @param enabled  
+     */        
+    public void toggleStereo(boolean enabled) {        
+        Log.d("RNTwilioVideo", "toggleStereo only available on iOS");  
     }
 }
